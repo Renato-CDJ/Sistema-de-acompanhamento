@@ -10,73 +10,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
-import { Eye, EyeOff, UserX, TrendingDown, AlertTriangle, Building2 } from "lucide-react"
+import { Eye, EyeOff, UserX, AlertTriangle, Building2, Edit, Trash2, Filter } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/auth"
-
-// Mock data para desligamentos
-const desligamentosData = [
-  {
-    id: 1,
-    nome: "Carlos Silva",
-    carteira: "CAIXA",
-    turno: "Manhã",
-    data: "2024-01-15",
-    motivo: "Pedido de Demissão",
-    avisoPrevia: "Com",
-    responsavel: "Maria Santos",
-    veioAgencia: "Não",
-    observacao: "Funcionário solicitou desligamento para nova oportunidade",
-  },
-  {
-    id: 2,
-    nome: "Ana Costa",
-    carteira: "BTG",
-    turno: "Tarde",
-    data: "2024-01-12",
-    motivo: "Justa Causa",
-    avisoPrevia: "Sem",
-    responsavel: "João Oliveira",
-    veioAgencia: "Sim",
-    observacao: "Descumprimento de normas internas",
-  },
-  {
-    id: 3,
-    nome: "Pedro Alves",
-    carteira: "BMG",
-    turno: "Integral",
-    data: "2024-01-10",
-    motivo: "Término de Contrato",
-    avisoPrevia: "Com",
-    responsavel: "Lucia Ferreira",
-    veioAgencia: "Não",
-    observacao: "Contrato temporário finalizado",
-  },
-  {
-    id: 4,
-    nome: "Fernanda Lima",
-    carteira: "Carrefour",
-    turno: "Manhã",
-    data: "2024-01-08",
-    motivo: "Pedido de Demissão",
-    avisoPrevia: "Com",
-    responsavel: "Roberto Silva",
-    veioAgencia: "Sim",
-    observacao: "Mudança de cidade",
-  },
-  {
-    id: 5,
-    nome: "Marcos Pereira",
-    carteira: "WILLBANK",
-    turno: "Tarde",
-    data: "2024-01-05",
-    motivo: "Demissão sem Justa Causa",
-    avisoPrevia: "Com",
-    responsavel: "Ana Santos",
-    veioAgencia: "Não",
-    observacao: "Reestruturação do setor",
-  },
-]
+import { useData } from "@/contexts/data-context"
 
 const motivosDesligamento = [
   "Pedido de Demissão",
@@ -88,88 +25,151 @@ const motivosDesligamento = [
   "Abandono de Emprego",
 ]
 
-export function DesligamentosTab() {
+const carteirasDisponiveis = ["CAIXA", "BTG", "BMG", "Carrefour", "WILLBANK"]
+
+interface DesligamentosTabProps {
+  filters?: {
+    dateRange?: { start: string; end: string }
+    turno?: string
+    carteira?: string
+    motivo?: string
+  }
+}
+
+export function DesligamentosTab({ filters }: DesligamentosTabProps) {
   const { user } = useAuth()
   const isAdmin = hasPermission(user, "edit")
-  const [showCharts, setShowCharts] = useState(true)
-  const [desligamentos, setDesligamentos] = useState(desligamentosData)
-  const [motivos, setMotivos] = useState(motivosDesligamento)
+  const { desligamentos, addDesligamento, updateDesligamento, deleteDesligamento, getDesligamentosStats } = useData()
 
-  const [stats, setStats] = useState({
-    totalDesligamentos: desligamentosData.length,
-    comAvisoPrevia: desligamentosData.filter((d) => d.avisoPrevia === "Com").length,
-    semAvisoPrevia: desligamentosData.filter((d) => d.avisoPrevia === "Sem").length,
-    taxaRotatividade: 8.2,
-    veioAgencia: desligamentosData.filter((d) => d.veioAgencia === "Sim").length,
-  })
+  const [showCharts, setShowCharts] = useState(true)
+  const [dateFilter, setDateFilter] = useState("")
+  const [carteiraFilter, setCarteiraFilter] = useState("todas")
+
+  const stats = getDesligamentosStats()
 
   // Form state para novo desligamento
   const [novoDesligamento, setNovoDesligamento] = useState({
     nome: "",
-    carteira: "",
+    carteira: "CAIXA", // Default value set to "CAIXA"
     turno: "",
     data: "",
-    motivo: "",
-    avisoPrevia: "Com",
+    motivo: "Pedido de Demissão", // Default value set to "Pedido de Demissão"
+    avisoPrevia: "Com" as "Com" | "Sem",
     responsavel: "",
-    veioAgencia: "Não",
+    veioAgencia: "Não" as "Sim" | "Não",
     observacao: "",
   })
 
-  const updateStatistics = (newDesligamentos: any[]) => {
-    const newStats = {
-      totalDesligamentos: newDesligamentos.length,
-      comAvisoPrevia: newDesligamentos.filter((d) => d.avisoPrevia === "Com").length,
-      semAvisoPrevia: newDesligamentos.filter((d) => d.avisoPrevia === "Sem").length,
-      taxaRotatividade: 8.2, // This would be calculated based on business logic
-      veioAgencia: newDesligamentos.filter((d) => d.veioAgencia === "Sim").length,
+  // Estado para edição de desligamentos
+  const [editingDesligamento, setEditingDesligamento] = useState<any>(null)
+
+  const filteredDesligamentos = desligamentos.filter((desligamento) => {
+    // Filtros globais
+    const matchesDateRange =
+      !filters?.dateRange?.start ||
+      !filters?.dateRange?.end ||
+      (desligamento.data >= filters.dateRange.start && desligamento.data <= filters.dateRange.end)
+
+    const matchesTurno =
+      !filters?.turno ||
+      filters.turno === "Todos os turnos" ||
+      desligamento.turno.toLowerCase() === filters.turno.toLowerCase()
+
+    const matchesCarteira =
+      !filters?.carteira || filters.carteira === "Todas as carteiras" || desligamento.carteira === filters.carteira
+
+    const matchesMotivo =
+      !filters?.motivo || filters.motivo === "Todos os motivos" || desligamento.motivo === filters.motivo
+
+    // Filtros locais (mantidos para compatibilidade)
+    const matchesLocalDate = !dateFilter || desligamento.data === dateFilter
+    const matchesLocalCarteira =
+      carteiraFilter === "todas" || !carteiraFilter || desligamento.carteira === carteiraFilter
+
+    console.log("[v0] Filtrando desligamentos:", {
+      desligamento: desligamento,
+      filters: filters,
+      matchesDateRange,
+      matchesTurno,
+      matchesCarteira,
+      matchesMotivo,
+      matchesLocalDate,
+      matchesLocalCarteira,
+    })
+
+    return (
+      matchesDateRange && matchesTurno && matchesCarteira && matchesMotivo && matchesLocalDate && matchesLocalCarteira
+    )
+  })
+
+  const handleEditDesligamento = (desligamento: any) => {
+    setEditingDesligamento(desligamento)
+    setNovoDesligamento({
+      nome: desligamento.nome,
+      carteira: desligamento.carteira,
+      turno: desligamento.turno,
+      data: desligamento.data,
+      motivo: desligamento.motivo,
+      avisoPrevia: desligamento.avisoPrevia,
+      responsavel: desligamento.responsavel,
+      veioAgencia: desligamento.veioAgencia,
+      observacao: desligamento.observacao,
+    })
+  }
+
+  const handleDeleteDesligamento = (id: number) => {
+    if (confirm("Tem certeza que deseja excluir este registro de desligamento?")) {
+      deleteDesligamento(id)
+      alert("Desligamento excluído com sucesso!")
     }
-    setStats(newStats)
-    console.log("[v0] Estatísticas de desligamentos atualizadas:", newStats)
   }
 
   const handleAddDesligamento = () => {
-    if (novoDesligamento.nome && novoDesligamento.carteira && novoDesligamento.motivo) {
-      const newDesligamento = {
-        ...novoDesligamento,
-        id: desligamentos.length + 1,
+    if (novoDesligamento.nome && novoDesligamento.carteira && novoDesligamento.motivo && novoDesligamento.data) {
+      if (editingDesligamento) {
+        // Editando desligamento existente
+        updateDesligamento(editingDesligamento.id, novoDesligamento)
+        alert("Desligamento atualizado com sucesso!")
+      } else {
+        // Adicionando novo desligamento
+        addDesligamento(novoDesligamento)
+        alert("Desligamento registrado com sucesso!")
       }
 
-      const updatedDesligamentos = [...desligamentos, newDesligamento]
-      setDesligamentos(updatedDesligamentos)
+      console.log("[v0] Desligamento processado:", novoDesligamento)
 
-      updateStatistics(updatedDesligamentos)
-
-      console.log("[v0] Novo desligamento registrado:", newDesligamento)
-
+      // Reset form
       setNovoDesligamento({
         nome: "",
-        carteira: "",
+        carteira: "CAIXA", // Default value set to "CAIXA"
         turno: "",
         data: "",
-        motivo: "",
+        motivo: "Pedido de Demissão", // Default value set to "Pedido de Demissão"
         avisoPrevia: "Com",
         responsavel: "",
         veioAgencia: "Não",
         observacao: "",
       })
+      setEditingDesligamento(null)
+    } else {
+      alert("Por favor, preencha todos os campos obrigatórios (Nome, Carteira, Motivo e Data)")
     }
   }
 
   const pieDataAvisoPrevia = [
     { name: "Com Aviso Prévio", value: stats.comAvisoPrevia, color: "#22c55e" },
     { name: "Sem Aviso Prévio", value: stats.semAvisoPrevia, color: "#ef4444" },
-  ]
+  ].filter((item) => item.value > 0)
 
-  const pieDataMotivos = motivos
+  const pieDataMotivos = motivosDesligamento
     .map((motivo, index) => ({
       name: motivo,
       value: desligamentos.filter((d) => d.motivo === motivo).length,
-      color: `hsl(${(index * 360) / motivos.length}, 70%, 50%)`,
+      color: `hsl(${(index * 360) / motivosDesligamento.length}, 70%, 50%)`,
     }))
     .filter((item) => item.value > 0)
 
-  const carteiraDesligamentos = ["CAIXA", "BTG", "BMG", "Carrefour", "WILLBANK"].map((carteira) => ({
+  const carteiraDesligamentos = carteirasDisponiveis.map((carteira) => ({
     carteira,
     quantidade: desligamentos.filter((d) => d.carteira === carteira).length,
   }))
@@ -187,7 +187,7 @@ export function DesligamentosTab() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{stats.totalDesligamentos}</div>
-            <p className="text-xs text-muted-foreground">Este mês</p>
+            <p className="text-xs text-muted-foreground">Registrados</p>
           </CardContent>
         </Card>
 
@@ -219,87 +219,99 @@ export function DesligamentosTab() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingDown className="h-4 w-4" />
-              Taxa de Rotatividade
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Veio de Agência</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{stats.taxaRotatividade}%</div>
-            <p className="text-xs text-muted-foreground">Mensal</p>
+            <div className="text-2xl font-bold text-blue-600">{stats.veioAgencia}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.totalDesligamentos > 0 ? ((stats.veioAgencia / stats.totalDesligamentos) * 100).toFixed(1) : 0}% do
+              total
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Análise de Motivos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Análise de Motivos
-          </CardTitle>
-          <CardDescription>Principais motivos de desligamento para análise</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pieDataMotivos.map((motivo, index) => (
-              <Card key={index} className="border-l-4" style={{ borderLeftColor: motivo.color }}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-medium text-sm">{motivo.name}</h4>
-                      <p className="text-2xl font-bold mt-1">{motivo.value}</p>
-                    </div>
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: `${motivo.color}20` }}
-                    >
-                      <span className="text-lg font-bold" style={{ color: motivo.color }}>
-                        {motivo.value}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {desligamentos.length > 0 && (
+        <>
+          {/* Análise de Motivos */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Análise de Motivos
+              </CardTitle>
+              <CardDescription>Principais motivos de desligamento para análise</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {pieDataMotivos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {pieDataMotivos.map((motivo, index) => (
+                    <Card key={index} className="border-l-4" style={{ borderLeftColor: motivo.color }}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-medium text-sm">{motivo.name}</h4>
+                            <p className="text-2xl font-bold mt-1">{motivo.value}</p>
+                          </div>
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center"
+                            style={{ backgroundColor: `${motivo.color}20` }}
+                          >
+                            <span className="text-lg font-bold" style={{ color: motivo.color }}>
+                              {motivo.value}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nenhum motivo de desligamento registrado ainda.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* Desligamentos por Carteira */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Desligamentos por Carteira
-          </CardTitle>
-          <CardDescription>Distribuição de desligamentos por carteira</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {carteiraDesligamentos.map((item, index) => (
-              <Card key={index}>
-                <CardContent className="p-4 text-center">
-                  <h4 className="font-semibold text-sm mb-2">{item.carteira}</h4>
-                  <div className="text-2xl font-bold text-red-600">{item.quantidade}</div>
-                  <p className="text-xs text-muted-foreground">desligamentos</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          {/* Desligamentos por Carteira */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Desligamentos por Carteira
+              </CardTitle>
+              <CardDescription>Distribuição de desligamentos por carteira</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {carteiraDesligamentos.map((item, index) => (
+                  <Card key={index}>
+                    <CardContent className="p-4 text-center">
+                      <h4 className="font-semibold text-sm mb-2">{item.carteira}</h4>
+                      <div className="text-2xl font-bold text-red-600">{item.quantidade}</div>
+                      <p className="text-xs text-muted-foreground">desligamentos</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* Charts Toggle */}
-      <div className="flex justify-end">
-        <Button variant="outline" onClick={() => setShowCharts(!showCharts)} className="gap-2">
-          {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          {showCharts ? "Ocultar Gráficos" : "Mostrar Gráficos"}
-        </Button>
-      </div>
+      {desligamentos.length > 0 && (
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={() => setShowCharts(!showCharts)} className="gap-2">
+            {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showCharts ? "Ocultar Gráficos" : "Mostrar Gráficos"}
+          </Button>
+        </div>
+      )}
 
       {/* Charts */}
-      {showCharts && (
+      {showCharts && desligamentos.length > 0 && pieDataAvisoPrevia.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -336,7 +348,7 @@ export function DesligamentosTab() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={carteiraDesligamentos}>
+                <BarChart data={carteiraDesligamentos.filter((c) => c.quantidade > 0)}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="carteira" />
                   <YAxis />
@@ -349,17 +361,19 @@ export function DesligamentosTab() {
         </div>
       )}
 
-      {/* Adicionar Desligamento */}
+      {/* Adicionar/Editar Desligamento */}
       {isAdmin && (
         <Card>
           <CardHeader>
-            <CardTitle>Registrar Novo Desligamento</CardTitle>
-            <CardDescription>Adicione um novo registro de desligamento</CardDescription>
+            <CardTitle>{editingDesligamento ? "Editar Desligamento" : "Registrar Novo Desligamento"}</CardTitle>
+            <CardDescription>
+              {editingDesligamento ? "Edite os dados do desligamento" : "Adicione um novo registro de desligamento"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <div>
-                <Label htmlFor="nome">Nome</Label>
+                <Label htmlFor="nome">Nome *</Label>
                 <Input
                   id="nome"
                   value={novoDesligamento.nome}
@@ -368,7 +382,7 @@ export function DesligamentosTab() {
                 />
               </div>
               <div>
-                <Label htmlFor="carteira">Carteira</Label>
+                <Label htmlFor="carteira">Carteira *</Label>
                 <Select
                   value={novoDesligamento.carteira}
                   onValueChange={(value) => setNovoDesligamento({ ...novoDesligamento, carteira: value })}
@@ -377,11 +391,11 @@ export function DesligamentosTab() {
                     <SelectValue placeholder="Selecionar carteira" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CAIXA">CAIXA</SelectItem>
-                    <SelectItem value="BTG">BTG</SelectItem>
-                    <SelectItem value="BMG">BMG</SelectItem>
-                    <SelectItem value="Carrefour">Carrefour</SelectItem>
-                    <SelectItem value="WILLBANK">WILLBANK</SelectItem>
+                    {carteirasDisponiveis.map((carteira) => (
+                      <SelectItem key={carteira} value={carteira}>
+                        {carteira}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -402,7 +416,7 @@ export function DesligamentosTab() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="data">Data</Label>
+                <Label htmlFor="data">Data *</Label>
                 <Input
                   id="data"
                   type="date"
@@ -411,7 +425,7 @@ export function DesligamentosTab() {
                 />
               </div>
               <div>
-                <Label htmlFor="motivo">Motivo</Label>
+                <Label htmlFor="motivo">Motivo *</Label>
                 <Select
                   value={novoDesligamento.motivo}
                   onValueChange={(value) => setNovoDesligamento({ ...novoDesligamento, motivo: value })}
@@ -420,7 +434,7 @@ export function DesligamentosTab() {
                     <SelectValue placeholder="Selecionar motivo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {motivos.map((motivo) => (
+                    {motivosDesligamento.map((motivo) => (
                       <SelectItem key={motivo} value={motivo}>
                         {motivo}
                       </SelectItem>
@@ -432,7 +446,9 @@ export function DesligamentosTab() {
                 <Label htmlFor="aviso-previa">Aviso Prévio</Label>
                 <Select
                   value={novoDesligamento.avisoPrevia}
-                  onValueChange={(value) => setNovoDesligamento({ ...novoDesligamento, avisoPrevia: value })}
+                  onValueChange={(value: "Com" | "Sem") =>
+                    setNovoDesligamento({ ...novoDesligamento, avisoPrevia: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -456,7 +472,9 @@ export function DesligamentosTab() {
                 <Label htmlFor="veio-agencia">Veio de Agência</Label>
                 <Select
                   value={novoDesligamento.veioAgencia}
-                  onValueChange={(value) => setNovoDesligamento({ ...novoDesligamento, veioAgencia: value })}
+                  onValueChange={(value: "Sim" | "Não") =>
+                    setNovoDesligamento({ ...novoDesligamento, veioAgencia: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -478,9 +496,32 @@ export function DesligamentosTab() {
                 rows={3}
               />
             </div>
-            <Button onClick={handleAddDesligamento} className="w-full">
-              Registrar Desligamento
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleAddDesligamento} className="flex-1">
+                {editingDesligamento ? "Atualizar Desligamento" : "Registrar Desligamento"}
+              </Button>
+              {editingDesligamento && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingDesligamento(null)
+                    setNovoDesligamento({
+                      nome: "",
+                      carteira: "CAIXA", // Default value set to "CAIXA"
+                      turno: "",
+                      data: "",
+                      motivo: "Pedido de Demissão", // Default value set to "Pedido de Demissão"
+                      avisoPrevia: "Com",
+                      responsavel: "",
+                      veioAgencia: "Não",
+                      observacao: "",
+                    })
+                  }}
+                >
+                  Cancelar
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -488,54 +529,115 @@ export function DesligamentosTab() {
       {/* Tabela de Registros */}
       <Card>
         <CardHeader>
-          <CardTitle>Registros de Desligamentos</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            Registros de Desligamentos
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              <Input
+                type="date"
+                placeholder="Filtrar por data"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-40"
+              />
+              <Select value={carteiraFilter} onValueChange={setCarteiraFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filtrar carteira" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {carteirasDisponiveis.map((carteira) => (
+                    <SelectItem key={carteira} value={carteira}>
+                      {carteira}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(dateFilter || carteiraFilter !== "todas") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDateFilter("")
+                    setCarteiraFilter("todas")
+                  }}
+                >
+                  Limpar
+                </Button>
+              )}
+            </div>
+          </CardTitle>
           <CardDescription>Histórico completo de desligamentos</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Carteira</TableHead>
-                  <TableHead>Turno</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Motivo</TableHead>
-                  <TableHead>Aviso Prévio</TableHead>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead>Agência</TableHead>
-                  <TableHead>Observação</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {desligamentos.map((desligamento) => (
-                  <TableRow key={desligamento.id}>
-                    <TableCell className="font-medium">{desligamento.nome}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{desligamento.carteira}</Badge>
-                    </TableCell>
-                    <TableCell>{desligamento.turno}</TableCell>
-                    <TableCell>{new Date(desligamento.data).toLocaleDateString("pt-BR")}</TableCell>
-                    <TableCell>{desligamento.motivo}</TableCell>
-                    <TableCell>
-                      <Badge variant={desligamento.avisoPrevia === "Com" ? "default" : "destructive"}>
-                        {desligamento.avisoPrevia}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{desligamento.responsavel}</TableCell>
-                    <TableCell>
-                      <Badge variant={desligamento.veioAgencia === "Sim" ? "secondary" : "outline"}>
-                        {desligamento.veioAgencia}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate" title={desligamento.observacao}>
-                      {desligamento.observacao}
-                    </TableCell>
+          {filteredDesligamentos.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Nenhum desligamento registrado ainda.</p>
+              <p className="text-sm">Use o formulário acima para registrar desligamentos.</p>
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Carteira</TableHead>
+                    <TableHead>Turno</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Motivo</TableHead>
+                    <TableHead>Aviso Prévio</TableHead>
+                    <TableHead>Responsável</TableHead>
+                    <TableHead>Agência</TableHead>
+                    <TableHead>Observação</TableHead>
+                    {isAdmin && <TableHead>Ações</TableHead>}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredDesligamentos.map((desligamento) => (
+                    <TableRow key={desligamento.id}>
+                      <TableCell className="font-medium">{desligamento.nome}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{desligamento.carteira}</Badge>
+                      </TableCell>
+                      <TableCell>{desligamento.turno}</TableCell>
+                      <TableCell>{new Date(desligamento.data).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell>{desligamento.motivo}</TableCell>
+                      <TableCell>
+                        <Badge variant={desligamento.avisoPrevia === "Com" ? "default" : "destructive"}>
+                          {desligamento.avisoPrevia}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{desligamento.responsavel}</TableCell>
+                      <TableCell>
+                        <Badge variant={desligamento.veioAgencia === "Sim" ? "secondary" : "outline"}>
+                          {desligamento.veioAgencia}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate" title={desligamento.observacao}>
+                        {desligamento.observacao}
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEditDesligamento(desligamento)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteDesligamento(desligamento.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

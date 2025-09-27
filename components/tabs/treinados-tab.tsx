@@ -14,7 +14,16 @@ import { useAuth } from "@/contexts/auth-context"
 import { useData } from "@/contexts/data-context"
 import { hasPermission } from "@/lib/auth"
 
-export function TreinadosTab() {
+interface TreinadosTabProps {
+  filters?: {
+    dateRange?: { start: string; end: string }
+    turno?: string
+    carteira?: string
+    status?: string
+  }
+}
+
+export function TreinadosTab({ filters }: TreinadosTabProps) {
   const { user } = useAuth()
   const isAdmin = hasPermission(user, "edit")
   const [showCharts, setShowCharts] = useState(true)
@@ -50,15 +59,57 @@ export function TreinadosTab() {
   }))
 
   const treinadosFiltrados = operadoresTreinados.filter((treinado) => {
+    // Filtros globais
+    const matchDateRange =
+      !filters?.dateRange?.start ||
+      !filters?.dateRange?.end ||
+      (treinado.dataConlusao >= filters.dateRange.start && treinado.dataConlusao <= filters.dateRange.end)
+
+    const matchTurno =
+      !filters?.turno ||
+      filters.turno === "Todos os turnos" ||
+      treinado.turno?.toLowerCase() === filters.turno.toLowerCase()
+
+    const matchCarteira =
+      !filters?.carteira || filters.carteira === "Todas as carteiras" || treinado.carteira === filters.carteira
+
+    const matchStatus = !filters?.status || filters.status === "Todos os status" // Todos os treinados têm status "Aplicado"
+
+    // Filtros locais (mantidos para compatibilidade)
     const matchAssunto =
       !filtrosAplicados.assunto || treinado.assunto.toLowerCase().includes(filtrosAplicados.assunto.toLowerCase())
     const matchNome =
       !filtrosAplicados.nome || treinado.nome.toLowerCase().includes(filtrosAplicados.nome.toLowerCase())
-    const matchData = !filtrosAplicados.data || treinado.dataConclusao.includes(filtrosAplicados.data)
-    const matchCarteira =
+    const matchData = !filtrosAplicados.data || treinado.dataConlusao.includes(filtrosAplicados.data)
+    const matchLocalCarteira =
       filtrosAplicados.carteira === "Todas as carteiras" || treinado.carteira === filtrosAplicados.carteira
-    const matchTurno = filtrosAplicados.turno === "Todos os turnos" || treinado.turno === filtrosAplicados.turno
-    return matchAssunto && matchNome && matchData && matchCarteira && matchTurno
+    const matchLocalTurno = filtrosAplicados.turno === "Todos os turnos" || treinado.turno === filtrosAplicados.turno
+
+    console.log("[v0] Filtrando treinados:", {
+      treinado: treinado,
+      filters: filters,
+      matchDateRange,
+      matchTurno,
+      matchCarteira,
+      matchStatus,
+      matchAssunto,
+      matchNome,
+      matchData,
+      matchLocalCarteira,
+      matchLocalTurno,
+    })
+
+    return (
+      matchDateRange &&
+      matchTurno &&
+      matchCarteira &&
+      matchStatus &&
+      matchAssunto &&
+      matchNome &&
+      matchData &&
+      matchLocalCarteira &&
+      matchLocalTurno
+    )
   })
 
   // Simular importação de planilha
@@ -69,7 +120,7 @@ export function TreinadosTab() {
         id: operadoresTreinados.length + 1,
         nome: "Importado da Planilha",
         assunto: "Treinamento Inicial",
-        dataConclusao: "2024-01-16",
+        dataConlusao: "2024-01-16",
         carteira: "CAIXA",
         turno: "Manhã",
       },
@@ -94,7 +145,7 @@ export function TreinadosTab() {
     // Em uma implementação real, isso geraria e baixaria um arquivo Excel
     const csvContent =
       "Nome,Assunto,Data Conclusão,Carteira,Turno\n" +
-      treinadosFiltrados.map((t) => `${t.nome},${t.assunto},${t.dataConclusao},${t.carteira},${t.turno}`).join("\n")
+      treinadosFiltrados.map((t) => `${t.nome},${t.assunto},${t.dataConlusao},${t.carteira},${t.turno}`).join("\n")
 
     const blob = new Blob([csvContent], { type: "text/csv" })
     const url = window.URL.createObjectURL(blob)
@@ -422,7 +473,7 @@ export function TreinadosTab() {
                     <TableRow key={treinado.id}>
                       <TableCell className="font-medium">{treinado.nome}</TableCell>
                       <TableCell>{treinado.assunto}</TableCell>
-                      <TableCell>{new Date(treinado.dataConclusao).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell>{new Date(treinado.dataConlusao).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{treinado.carteira}</Badge>
                       </TableCell>

@@ -81,10 +81,25 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
       !filters.dateRange?.start ||
       !filters.dateRange?.end ||
       (treinamento.data >= filters.dateRange.start && treinamento.data <= filters.dateRange.end)
-    const matchTurno = !filters.turno || filters.turno === "Todos os turnos" || treinamento.turno === filters.turno
+
+    const matchTurno =
+      !filters.turno ||
+      filters.turno === "Todos os turnos" ||
+      treinamento.turno.toLowerCase() === filters.turno.toLowerCase()
+
     const matchCarteira =
       !filters.carteira || filters.carteira === "Todas as carteiras" || treinamento.carteira === filters.carteira
+
     const matchStatus = !filters.status || filters.status === "Todos os status" || treinamento.status === filters.status
+
+    console.log("[v0] Filtrando treinamentos:", {
+      treinamento: treinamento,
+      filters: filters,
+      matchDateRange,
+      matchTurno,
+      matchCarteira,
+      matchStatus,
+    })
 
     return matchDateRange && matchTurno && matchCarteira && matchStatus
   })

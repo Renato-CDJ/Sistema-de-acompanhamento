@@ -37,18 +37,20 @@ interface Desligamento {
 
 interface DadosDiarios {
   id: number
-  data: string
+  date: string
   turno: string
   total: number
   ativos: number
   ferias: number
   afastamento: number
+  desaparecidos: number
+  inss: number
   secao: "Caixa" | "Cobrança"
 }
 
 interface EstatisticasCarteira {
   id: number
-  data: string
+  date: string
   carteira: string
   turno: string
   total: number
@@ -71,11 +73,15 @@ interface DataContextType {
   // Desligamentos
   desligamentos: Desligamento[]
   addDesligamento: (desligamento: Omit<Desligamento, "id">) => void
+  updateDesligamento: (id: number, desligamento: Partial<Desligamento>) => void
+  deleteDesligamento: (id: number) => void
 
   // Quadro
   dadosDiarios: DadosDiarios[]
   estatisticasCarteiras: EstatisticasCarteira[]
   addDadosDiarios: (dados: Omit<DadosDiarios, "id">) => void
+  updateDadosDiarios: (id: number, dados: Partial<DadosDiarios>) => void
+  deleteDadosDiarios: (id: number) => void
   addEstatisticasCarteira: (stats: Omit<EstatisticasCarteira, "id">) => void
 
   // Estatísticas calculadas
@@ -312,6 +318,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updateDadosDiarios = (id: number, dadosAtualizados: Partial<DadosDiarios>) => {
+    setDadosDiarios((prev) => prev.map((dados) => (dados.id === id ? { ...dados, ...dadosAtualizados } : dados)))
+    console.log("[v0] Dados diários atualizados:", dadosAtualizados)
+  }
+
+  const deleteDadosDiarios = (id: number) => {
+    setDadosDiarios((prev) => {
+      const dados = prev.find((d) => d.id === id)
+      console.log("[v0] Dados diários removidos:", dados)
+      return prev.filter((d) => d.id !== id)
+    })
+  }
+
+  const updateDesligamento = (id: number, desligamentoAtualizado: Partial<Desligamento>) => {
+    setDesligamentos((prev) =>
+      prev.map((desligamento) =>
+        desligamento.id === id ? { ...desligamento, ...desligamentoAtualizado } : desligamento,
+      ),
+    )
+    console.log("[v0] Desligamento atualizado:", desligamentoAtualizado)
+  }
+
+  const deleteDesligamento = (id: number) => {
+    setDesligamentos((prev) => {
+      const desligamento = prev.find((d) => d.id === id)
+      console.log("[v0] Desligamento removido:", desligamento)
+      return prev.filter((d) => d.id !== id)
+    })
+  }
+
   const value: DataContextType = {
     carteiras,
     treinamentos,
@@ -327,7 +363,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateTreinamento,
     addDesligamento,
     addDadosDiarios,
+    updateDadosDiarios,
+    deleteDadosDiarios,
     addEstatisticasCarteira,
+    updateDesligamento,
+    deleteDesligamento,
     getCapacitacaoStats,
     getDesligamentosStats,
     getTreinadosStats,

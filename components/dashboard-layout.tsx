@@ -169,69 +169,78 @@ export function DashboardLayout({
     )
 
     const specificFilters = () => {
+      const secaoFilter = (
+        <div>
+          <Label htmlFor="filter-secao">Seção</Label>
+          <Select
+            value={filters?.secao || "Todas as seções"}
+            onValueChange={(value) => handleFilterChange("secao", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todas as seções" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todas as seções">Todas as seções</SelectItem>
+              <SelectItem value="Caixa">Caixa</SelectItem>
+              <SelectItem value="Cobrança">Cobrança</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )
+
       switch (activeTab) {
         case "capacitacao":
         case "treinados":
           return (
-            <div>
-              <Label htmlFor="filter-status">Status</Label>
-              <Select
-                value={filters?.status || "Todos os status"}
-                onValueChange={(value) => handleFilterChange("status", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todos os status">Todos os status</SelectItem>
-                  <SelectItem value="Aplicado">Aplicado</SelectItem>
-                  <SelectItem value="Pendente">Pendente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div>
+                <Label htmlFor="filter-status">Status</Label>
+                <Select
+                  value={filters?.status || "Todos os status"}
+                  onValueChange={(value) => handleFilterChange("status", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Todos os status">Todos os status</SelectItem>
+                    <SelectItem value="Aplicado">Aplicado</SelectItem>
+                    <SelectItem value="Pendente">Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {secaoFilter}
+            </>
           )
         case "desligamentos":
           return (
-            <div>
-              <Label htmlFor="filter-motivo">Motivo</Label>
-              <Select
-                value={filters?.motivo || "Todos os motivos"}
-                onValueChange={(value) => handleFilterChange("motivo", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os motivos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todos os motivos">Todos os motivos</SelectItem>
-                  <SelectItem value="Pedido de Demissão">Pedido de Demissão</SelectItem>
-                  <SelectItem value="Justa Causa">Justa Causa</SelectItem>
-                  <SelectItem value="Término de Contrato">Término de Contrato</SelectItem>
-                  <SelectItem value="Demissão sem Justa Causa">Demissão sem Justa Causa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div>
+                <Label htmlFor="filter-motivo">Motivo</Label>
+                <Select
+                  value={filters?.motivo || "Todos os motivos"}
+                  onValueChange={(value) => handleFilterChange("motivo", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos os motivos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Todos os motivos">Todos os motivos</SelectItem>
+                    <SelectItem value="Pedido de Demissão">Pedido de Demissão</SelectItem>
+                    <SelectItem value="Justa Causa">Justa Causa</SelectItem>
+                    <SelectItem value="Término de Contrato">Término de Contrato</SelectItem>
+                    <SelectItem value="Demissão sem Justa Causa">Demissão sem Justa Causa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {secaoFilter}
+            </>
           )
         case "quadro":
-          return (
-            <div>
-              <Label htmlFor="filter-secao">Seção</Label>
-              <Select
-                value={filters?.secao || "Todas as seções"}
-                onValueChange={(value) => handleFilterChange("secao", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas as seções" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todas as seções">Todas as seções</SelectItem>
-                  <SelectItem value="Caixa">Caixa</SelectItem>
-                  <SelectItem value="Cobrança">Cobrança</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )
+        case "overview":
+          return secaoFilter
         default:
-          return null
+          return secaoFilter
       }
     }
 
