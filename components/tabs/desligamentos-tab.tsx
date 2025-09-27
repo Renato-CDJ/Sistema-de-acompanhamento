@@ -88,38 +88,20 @@ const motivosDesligamento = [
   "Abandono de Emprego",
 ]
 
-// Estatísticas calculadas
-const totalDesligamentos = desligamentosData.length
-const comAvisoPrevia = desligamentosData.filter((d) => d.avisoPrevia === "Com").length
-const semAvisoPrevia = desligamentosData.filter((d) => d.avisoPrevia === "Sem").length
-const taxaRotatividade = 8.2 // Simulado
-const veioAgencia = desligamentosData.filter((d) => d.veioAgencia === "Sim").length
-
-// Dados para gráficos
-const pieDataAvisoPrevia = [
-  { name: "Com Aviso Prévio", value: comAvisoPrevia, color: "#22c55e" },
-  { name: "Sem Aviso Prévio", value: semAvisoPrevia, color: "#ef4444" },
-]
-
-const pieDataMotivos = motivosDesligamento
-  .map((motivo, index) => ({
-    name: motivo,
-    value: desligamentosData.filter((d) => d.motivo === motivo).length,
-    color: `hsl(${(index * 360) / motivosDesligamento.length}, 70%, 50%)`,
-  }))
-  .filter((item) => item.value > 0)
-
-const carteiraDesligamentos = ["CAIXA", "BTG", "BMG", "Carrefour", "WILLBANK"].map((carteira) => ({
-  carteira,
-  quantidade: desligamentosData.filter((d) => d.carteira === carteira).length,
-}))
-
 export function DesligamentosTab() {
   const { user } = useAuth()
   const isAdmin = hasPermission(user, "edit")
   const [showCharts, setShowCharts] = useState(true)
   const [desligamentos, setDesligamentos] = useState(desligamentosData)
   const [motivos, setMotivos] = useState(motivosDesligamento)
+
+  const [stats, setStats] = useState({
+    totalDesligamentos: desligamentosData.length,
+    comAvisoPrevia: desligamentosData.filter((d) => d.avisoPrevia === "Com").length,
+    semAvisoPrevia: desligamentosData.filter((d) => d.avisoPrevia === "Sem").length,
+    taxaRotatividade: 8.2,
+    veioAgencia: desligamentosData.filter((d) => d.veioAgencia === "Sim").length,
+  })
 
   // Form state para novo desligamento
   const [novoDesligamento, setNovoDesligamento] = useState({
@@ -134,15 +116,32 @@ export function DesligamentosTab() {
     observacao: "",
   })
 
+  const updateStatistics = (newDesligamentos: any[]) => {
+    const newStats = {
+      totalDesligamentos: newDesligamentos.length,
+      comAvisoPrevia: newDesligamentos.filter((d) => d.avisoPrevia === "Com").length,
+      semAvisoPrevia: newDesligamentos.filter((d) => d.avisoPrevia === "Sem").length,
+      taxaRotatividade: 8.2, // This would be calculated based on business logic
+      veioAgencia: newDesligamentos.filter((d) => d.veioAgencia === "Sim").length,
+    }
+    setStats(newStats)
+    console.log("[v0] Estatísticas de desligamentos atualizadas:", newStats)
+  }
+
   const handleAddDesligamento = () => {
     if (novoDesligamento.nome && novoDesligamento.carteira && novoDesligamento.motivo) {
-      setDesligamentos([
-        ...desligamentos,
-        {
-          ...novoDesligamento,
-          id: desligamentos.length + 1,
-        },
-      ])
+      const newDesligamento = {
+        ...novoDesligamento,
+        id: desligamentos.length + 1,
+      }
+
+      const updatedDesligamentos = [...desligamentos, newDesligamento]
+      setDesligamentos(updatedDesligamentos)
+
+      updateStatistics(updatedDesligamentos)
+
+      console.log("[v0] Novo desligamento registrado:", newDesligamento)
+
       setNovoDesligamento({
         nome: "",
         carteira: "",
@@ -157,6 +156,24 @@ export function DesligamentosTab() {
     }
   }
 
+  const pieDataAvisoPrevia = [
+    { name: "Com Aviso Prévio", value: stats.comAvisoPrevia, color: "#22c55e" },
+    { name: "Sem Aviso Prévio", value: stats.semAvisoPrevia, color: "#ef4444" },
+  ]
+
+  const pieDataMotivos = motivos
+    .map((motivo, index) => ({
+      name: motivo,
+      value: desligamentos.filter((d) => d.motivo === motivo).length,
+      color: `hsl(${(index * 360) / motivos.length}, 70%, 50%)`,
+    }))
+    .filter((item) => item.value > 0)
+
+  const carteiraDesligamentos = ["CAIXA", "BTG", "BMG", "Carrefour", "WILLBANK"].map((carteira) => ({
+    carteira,
+    quantidade: desligamentos.filter((d) => d.carteira === carteira).length,
+  }))
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -169,7 +186,7 @@ export function DesligamentosTab() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{totalDesligamentos}</div>
+            <div className="text-2xl font-bold text-red-600">{stats.totalDesligamentos}</div>
             <p className="text-xs text-muted-foreground">Este mês</p>
           </CardContent>
         </Card>
@@ -179,9 +196,10 @@ export function DesligamentosTab() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Com Aviso Prévio</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{comAvisoPrevia}</div>
+            <div className="text-2xl font-bold text-green-600">{stats.comAvisoPrevia}</div>
             <p className="text-xs text-muted-foreground">
-              {((comAvisoPrevia / totalDesligamentos) * 100).toFixed(1)}% do total
+              {stats.totalDesligamentos > 0 ? ((stats.comAvisoPrevia / stats.totalDesligamentos) * 100).toFixed(1) : 0}%
+              do total
             </p>
           </CardContent>
         </Card>
@@ -191,9 +209,10 @@ export function DesligamentosTab() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Sem Aviso Prévio</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{semAvisoPrevia}</div>
+            <div className="text-2xl font-bold text-red-600">{stats.semAvisoPrevia}</div>
             <p className="text-xs text-muted-foreground">
-              {((semAvisoPrevia / totalDesligamentos) * 100).toFixed(1)}% do total
+              {stats.totalDesligamentos > 0 ? ((stats.semAvisoPrevia / stats.totalDesligamentos) * 100).toFixed(1) : 0}%
+              do total
             </p>
           </CardContent>
         </Card>
@@ -206,7 +225,7 @@ export function DesligamentosTab() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{taxaRotatividade}%</div>
+            <div className="text-2xl font-bold text-primary">{stats.taxaRotatividade}%</div>
             <p className="text-xs text-muted-foreground">Mensal</p>
           </CardContent>
         </Card>

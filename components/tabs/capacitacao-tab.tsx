@@ -19,73 +19,42 @@ import { Badge } from "@/components/ui/badge"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 import { Plus, Eye, EyeOff, Calendar, BookOpen, Users, CheckCircle, Clock } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { useData } from "@/contexts/data-context"
 import { hasPermission } from "@/lib/auth"
+import { useToast } from "@/components/ui/use-toast"
+import type { Treinamento } from "@/types"
 
-const capacitacaoStats = {
-  totalTreinamentos: 156,
-  aplicados: 134,
-  pendentes: 22,
-  taxaConclusao: 85.9,
+interface CapacitacaoTabProps {
+  filters?: {
+    dateRange?: { start: string; end: string }
+    turno?: string
+    carteira?: string
+    status?: string
+  }
 }
 
-const carteirasCapacitacao = [
-  { name: "CAIXA", total: 45, aplicados: 42, pendentes: 3, taxa: 93.3 },
-  { name: "BTG", total: 38, aplicados: 35, pendentes: 3, taxa: 92.1 },
-  { name: "WILLBANK", total: 32, aplicados: 28, pendentes: 4, taxa: 87.5 },
-  { name: "PEFISA", total: 25, aplicados: 20, pendentes: 5, taxa: 80.0 },
-  { name: "BMG", total: 16, aplicados: 9, pendentes: 7, taxa: 56.3 },
-]
-
-const assuntosCapacitacao = [
-  "Treinamento Inicial",
-  "Calibragem",
-  "Feedback",
-  "SARB",
-  "Prevenção ao Assédio",
-  "Compliance",
-  "Atendimento ao Cliente",
-]
-
-const treinamentosData = [
-  {
-    id: 1,
-    quantidade: 15,
-    turno: "Manhã",
-    carteira: "CAIXA",
-    data: "2024-01-15",
-    responsavel: "Maria Silva",
-    status: "Aplicado",
-    assunto: "Treinamento Inicial",
-  },
-  {
-    id: 2,
-    quantidade: 12,
-    turno: "Tarde",
-    carteira: "BTG",
-    data: "2024-01-14",
-    responsavel: "João Santos",
-    status: "Pendente",
-    assunto: "Calibragem",
-  },
-  {
-    id: 3,
-    quantidade: 8,
-    turno: "Integral",
-    carteira: "WILLBANK",
-    data: "2024-01-13",
-    responsavel: "Ana Costa",
-    status: "Aplicado",
-    assunto: "Feedback",
-  },
-]
-
-export function CapacitacaoTab() {
+export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
   const { user } = useAuth()
+  const { toast } = useToast()
   const isAdmin = hasPermission(user, "edit")
   const [showCharts, setShowCharts] = useState(true)
-  const [carteiras, setCarteiras] = useState(carteirasCapacitacao)
-  const [assuntos, setAssuntos] = useState(assuntosCapacitacao)
-  const [treinamentos, setTreinamentos] = useState(treinamentosData)
+  const [editingCarteira, setEditingCarteira] = useState<any>(null)
+  const [editingTreinamento, setEditingTreinamento] = useState<Treinamento | null>(null)
+
+  const {
+    carteiras,
+    treinamentos,
+    assuntos,
+    addCarteira,
+    updateCarteira,
+    deleteCarteira,
+    addTreinamento,
+    updateTreinamento,
+    addAssunto,
+    getCapacitacaoStats,
+  } = useData()
+
+  const capacitacaoStats = getCapacitacaoStats()
 
   // Form states
   const [novaCarteira, setNovaCarteira] = useState("")
@@ -96,7 +65,7 @@ export function CapacitacaoTab() {
     carteira: "",
     data: "",
     responsavel: "",
-    status: "Pendente",
+    status: "Pendente" as "Aplicado" | "Pendente",
     assunto: "",
   })
 
@@ -105,36 +74,66 @@ export function CapacitacaoTab() {
     { name: "Pendentes", value: capacitacaoStats.pendentes, color: "#f59e0b" },
   ]
 
-  const pieDataCarteiras = carteiras.map((carteira, index) => ({
-    name: carteira.name,
-    value: carteira.total,
-    color: `hsl(${(index * 360) / carteiras.length}, 70%, 50%)`,
-  }))
+  const treinamentosFiltrados = treinamentos.filter((treinamento) => {
+    if (!filters) return true
+
+    const matchDateRange =
+      !filters.dateRange?.start ||
+      !filters.dateRange?.end ||
+      (treinamento.data >= filters.dateRange.start && treinamento.data <= filters.dateRange.end)
+    const matchTurno = !filters.turno || filters.turno === "Todos os turnos" || treinamento.turno === filters.turno
+    const matchCarteira =
+      !filters.carteira || filters.carteira === "Todas as carteiras" || treinamento.carteira === filters.carteira
+    const matchStatus = !filters.status || filters.status === "Todos os status" || treinamento.status === filters.status
+
+    return matchDateRange && matchTurno && matchCarteira && matchStatus
+  })
 
   const handleAddCarteira = () => {
     if (novaCarteira.trim()) {
-      setCarteiras([...carteiras, { name: novaCarteira, total: 0, aplicados: 0, pendentes: 0, taxa: 0 }])
+      addCarteira({ name: novaCarteira })
       setNovaCarteira("")
+      toast({
+        title: "Sucesso!",
+        description: "Carteira adicionada com sucesso.",
+        variant: "default",
+      })
     }
   }
 
-  const handleAddAssunto = () => {
-    if (novoAssunto.trim()) {
-      setAssuntos([...assuntos, novoAssunto])
-      setNovoAssunto("")
+  const handleEditCarteira = (index: number) => {
+    setEditingCarteira({ ...carteiras[index], index })
+  }
+
+  const handleUpdateCarteira = () => {
+    if (editingCarteira && editingCarteira.name.trim()) {
+      const { index, ...carteiraData } = editingCarteira
+      updateCarteira(index, carteiraData)
+      setEditingCarteira(null)
+      toast({
+        title: "Sucesso!",
+        description: "Carteira atualizada com sucesso.",
+        variant: "default",
+      })
     }
+  }
+
+  const handleDeleteCarteira = (index: number) => {
+    deleteCarteira(index)
+    toast({
+      title: "Sucesso!",
+      description: "Carteira removida com sucesso.",
+      variant: "default",
+    })
   }
 
   const handleAddTreinamento = () => {
     if (novoTreinamento.quantidade && novoTreinamento.carteira && novoTreinamento.assunto) {
-      setTreinamentos([
-        ...treinamentos,
-        {
-          ...novoTreinamento,
-          id: treinamentos.length + 1,
-          quantidade: Number.parseInt(novoTreinamento.quantidade),
-        },
-      ])
+      addTreinamento({
+        ...novoTreinamento,
+        quantidade: Number.parseInt(novoTreinamento.quantidade),
+      })
+
       setNovoTreinamento({
         quantidade: "",
         turno: "",
@@ -143,6 +142,42 @@ export function CapacitacaoTab() {
         responsavel: "",
         status: "Pendente",
         assunto: "",
+      })
+
+      toast({
+        title: "Sucesso!",
+        description: "Treinamento adicionado com sucesso.",
+        variant: "default",
+      })
+    }
+  }
+
+  const handleAddAssunto = () => {
+    if (novoAssunto.trim()) {
+      addAssunto(novoAssunto)
+      setNovoAssunto("")
+      toast({
+        title: "Sucesso!",
+        description: "Assunto adicionado com sucesso.",
+        variant: "default",
+      })
+    }
+  }
+
+  const handleEditTreinamento = (treinamento: Treinamento) => {
+    setEditingTreinamento(treinamento)
+  }
+
+  const handleUpdateTreinamento = () => {
+    if (editingTreinamento) {
+      updateTreinamento(editingTreinamento.id, {
+        status: editingTreinamento.status,
+      })
+      setEditingTreinamento(null)
+      toast({
+        title: "Sucesso!",
+        description: "Status do treinamento atualizado com sucesso.",
+        variant: "default",
       })
     }
   }
@@ -185,11 +220,11 @@ export function CapacitacaoTab() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader>
             <CardTitle className="text-sm font-medium text-muted-foreground">Taxa de Conclusão</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{capacitacaoStats.taxaConclusao}%</div>
+            <div className="text-2xl font-bold text-primary">{capacitacaoStats.taxaConclusao.toFixed(1)}%</div>
           </CardContent>
         </Card>
       </div>
@@ -238,36 +273,56 @@ export function CapacitacaoTab() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {carteiras.map((carteira, index) => (
-              <Card key={index} className="border-l-4 border-l-primary">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold">{carteira.name}</h4>
-                    <Badge
-                      variant={carteira.taxa >= 90 ? "default" : carteira.taxa >= 70 ? "secondary" : "destructive"}
-                    >
-                      {carteira.taxa.toFixed(1)}%
-                    </Badge>
-                  </div>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total:</span>
-                      <span>{carteira.total}</span>
+          {carteiras.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhuma carteira cadastrada ainda.</p>
+              {isAdmin && <p className="text-sm">Use o botão "Adicionar Carteira" para começar.</p>}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {carteiras.map((carteira, index) => (
+                <Card key={index} className="border-l-4 border-l-primary">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-semibold">{carteira.name}</h4>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={carteira.taxa >= 90 ? "default" : carteira.taxa >= 70 ? "secondary" : "destructive"}
+                        >
+                          {carteira.taxa.toFixed(1)}%
+                        </Badge>
+                        {isAdmin && (
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditCarteira(index)}>
+                              Editar
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteCarteira(index)}>
+                              Excluir
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Aplicados:</span>
-                      <span className="text-green-600">{carteira.aplicados}</span>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total:</span>
+                        <span>{carteira.total}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Aplicados:</span>
+                        <span className="text-green-600">{carteira.aplicados}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Pendentes:</span>
+                        <span className="text-yellow-600">{carteira.pendentes}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Pendentes:</span>
-                      <span className="text-yellow-600">{carteira.pendentes}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -280,7 +335,7 @@ export function CapacitacaoTab() {
       </div>
 
       {/* Charts */}
-      {showCharts && (
+      {showCharts && capacitacaoStats.totalTreinamentos > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -485,46 +540,119 @@ export function CapacitacaoTab() {
           <CardDescription>Histórico de todos os treinamentos registrados</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Quantidade</TableHead>
-                <TableHead>Turno</TableHead>
-                <TableHead>Carteira</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Responsável</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Assunto</TableHead>
-                {isAdmin && <TableHead>Ações</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {treinamentos.map((treinamento) => (
-                <TableRow key={treinamento.id}>
-                  <TableCell className="font-medium">{treinamento.quantidade}</TableCell>
-                  <TableCell>{treinamento.turno}</TableCell>
-                  <TableCell>{treinamento.carteira}</TableCell>
-                  <TableCell>{new Date(treinamento.data).toLocaleDateString("pt-BR")}</TableCell>
-                  <TableCell>{treinamento.responsavel}</TableCell>
-                  <TableCell>
-                    <Badge variant={treinamento.status === "Aplicado" ? "default" : "secondary"}>
-                      {treinamento.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{treinamento.assunto}</TableCell>
-                  {isAdmin && (
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        Editar
-                      </Button>
-                    </TableCell>
-                  )}
+          {treinamentosFiltrados.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum treinamento encontrado.</p>
+              {isAdmin && <p className="text-sm">Adicione treinamentos usando o formulário acima.</p>}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Quantidade</TableHead>
+                  <TableHead>Turno</TableHead>
+                  <TableHead>Carteira</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Assunto</TableHead>
+                  {isAdmin && <TableHead>Ações</TableHead>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {treinamentosFiltrados.map((treinamento) => (
+                  <TableRow key={treinamento.id}>
+                    <TableCell className="font-medium">{treinamento.quantidade}</TableCell>
+                    <TableCell>{treinamento.turno}</TableCell>
+                    <TableCell>{treinamento.carteira}</TableCell>
+                    <TableCell>{new Date(treinamento.data).toLocaleDateString("pt-BR")}</TableCell>
+                    <TableCell>{treinamento.responsavel}</TableCell>
+                    <TableCell>
+                      <Badge variant={treinamento.status === "Aplicado" ? "default" : "secondary"}>
+                        {treinamento.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{treinamento.assunto}</TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={() => handleEditTreinamento(treinamento)}>
+                          Editar Status
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
+
+      {/* Edit Carteira Dialog */}
+      {editingCarteira && (
+        <Dialog open={!!editingCarteira} onOpenChange={() => setEditingCarteira(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Carteira</DialogTitle>
+              <DialogDescription>Edite as informações da carteira</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-carteira-name">Nome da Carteira</Label>
+                <Input
+                  id="edit-carteira-name"
+                  value={editingCarteira.name}
+                  onChange={(e) => setEditingCarteira({ ...editingCarteira, name: e.target.value })}
+                  placeholder="Nome da carteira"
+                />
+              </div>
+              <Button onClick={handleUpdateCarteira} className="w-full">
+                Salvar Alterações
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {editingTreinamento && (
+        <Dialog open={!!editingTreinamento} onOpenChange={() => setEditingTreinamento(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Status do Treinamento</DialogTitle>
+              <DialogDescription>Altere o status do treinamento entre Pendente e Aplicado</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Treinamento: {editingTreinamento.assunto}</Label>
+                <p className="text-sm text-muted-foreground">
+                  Carteira: {editingTreinamento.carteira} | Quantidade: {editingTreinamento.quantidade}
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="edit-status">Status</Label>
+                <Select
+                  value={editingTreinamento.status}
+                  onValueChange={(value) =>
+                    setEditingTreinamento({ ...editingTreinamento, status: value as "Aplicado" | "Pendente" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Aplicado">Aplicado</SelectItem>
+                    <SelectItem value="Pendente">Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleUpdateTreinamento} className="w-full">
+                Salvar Alterações
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

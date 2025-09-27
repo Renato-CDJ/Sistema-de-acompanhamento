@@ -5,62 +5,60 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
-import { Upload, Download, Eye, EyeOff, Users, BookOpen, Award, FileSpreadsheet } from "lucide-react"
+import { Upload, Download, Eye, EyeOff, Users, BookOpen, Award, FileSpreadsheet, Filter } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { useData } from "@/contexts/data-context"
 import { hasPermission } from "@/lib/auth"
-
-// Mock data baseado nos treinamentos da aba de Capacitação
-const operadoresTreinados = [
-  { id: 1, nome: "João Silva", assunto: "Treinamento Inicial", dataConlusao: "2024-01-15", carteira: "CAIXA" },
-  { id: 2, nome: "Maria Santos", assunto: "Calibragem", dataConlusao: "2024-01-14", carteira: "BTG" },
-  { id: 3, nome: "Pedro Costa", assunto: "Feedback", dataConlusao: "2024-01-13", carteira: "WILLBANK" },
-  { id: 4, nome: "Ana Oliveira", assunto: "SARB", dataConlusao: "2024-01-12", carteira: "PEFISA" },
-  { id: 5, nome: "Carlos Lima", assunto: "Prevenção ao Assédio", dataConlusao: "2024-01-11", carteira: "BMG" },
-  { id: 6, nome: "Lucia Ferreira", assunto: "Compliance", dataConlusao: "2024-01-10", carteira: "CAIXA" },
-  { id: 7, nome: "Roberto Alves", assunto: "Atendimento ao Cliente", dataConlusao: "2024-01-09", carteira: "BTG" },
-  { id: 8, nome: "Fernanda Rocha", assunto: "Treinamento Inicial", dataConlusao: "2024-01-08", carteira: "WILLBANK" },
-  { id: 9, nome: "Marcos Pereira", assunto: "Calibragem", dataConlusao: "2024-01-07", carteira: "PEFISA" },
-  { id: 10, nome: "Juliana Mendes", assunto: "Feedback", dataConlusao: "2024-01-06", carteira: "BMG" },
-]
-
-// Estatísticas baseadas nos dados
-const assuntosStats = [
-  { assunto: "Treinamento Inicial", quantidade: 2, color: "#f97316" },
-  { assunto: "Calibragem", quantidade: 2, color: "#fb923c" },
-  { assunto: "Feedback", quantidade: 2, color: "#fdba74" },
-  { assunto: "SARB", quantidade: 1, color: "#fed7aa" },
-  { assunto: "Prevenção ao Assédio", quantidade: 1, color: "#ffedd5" },
-  { assunto: "Compliance", quantidade: 1, color: "#22c55e" },
-  { assunto: "Atendimento ao Cliente", quantidade: 1, color: "#16a34a" },
-]
-
-const carteiraStats = [
-  { carteira: "CAIXA", quantidade: 2, color: "#f97316" },
-  { carteira: "BTG", quantidade: 2, color: "#fb923c" },
-  { carteira: "WILLBANK", quantidade: 2, color: "#fdba74" },
-  { carteira: "PEFISA", quantidade: 2, color: "#fed7aa" },
-  { carteira: "BMG", quantidade: 2, color: "#ffedd5" },
-]
 
 export function TreinadosTab() {
   const { user } = useAuth()
   const isAdmin = hasPermission(user, "edit")
   const [showCharts, setShowCharts] = useState(true)
-  const [treinados, setTreinados] = useState(operadoresTreinados)
+  const [showFilters, setShowFilters] = useState(false)
+  const [filtrosAplicados, setFiltrosAplicados] = useState({
+    data: "",
+    turno: "Todos os turnos",
+    carteira: "Todas as carteiras",
+    nome: "",
+    assunto: "",
+  })
+
+  const { carteiras, getTreinadosStats } = useData()
+  const { totalTreinados, assuntosUnicos, operadoresTreinados } = getTreinadosStats()
+
   const [filtroAssunto, setFiltroAssunto] = useState("")
   const [filtroNome, setFiltroNome] = useState("")
 
-  const totalTreinados = treinados.length
-  const assuntosUnicos = [...new Set(treinados.map((t) => t.assunto))]
+  const [filtroData, setFiltroData] = useState("")
+  const [filtroTurno, setFiltroTurno] = useState("Todos os turnos")
+  const [filtroCarteira, setFiltroCarteira] = useState("Todas as carteiras")
 
-  // Filtrar dados
-  const treinadosFiltrados = treinados.filter((treinado) => {
-    const matchAssunto = !filtroAssunto || treinado.assunto.toLowerCase().includes(filtroAssunto.toLowerCase())
-    const matchNome = !filtroNome || treinado.nome.toLowerCase().includes(filtroNome.toLowerCase())
-    return matchAssunto && matchNome
+  const assuntosStats = assuntosUnicos.map((assunto, index) => ({
+    assunto,
+    quantidade: operadoresTreinados.filter((o) => o.assunto === assunto).length,
+    color: `hsl(${(index * 360) / assuntosUnicos.length}, 70%, 50%)`,
+  }))
+
+  const carteiraStats = carteiras.map((carteira, index) => ({
+    carteira: carteira.name,
+    quantidade: operadoresTreinados.filter((o) => o.carteira === carteira.name).length,
+    color: `hsl(${(index * 360) / carteiras.length}, 70%, 50%)`,
+  }))
+
+  const treinadosFiltrados = operadoresTreinados.filter((treinado) => {
+    const matchAssunto =
+      !filtrosAplicados.assunto || treinado.assunto.toLowerCase().includes(filtrosAplicados.assunto.toLowerCase())
+    const matchNome =
+      !filtrosAplicados.nome || treinado.nome.toLowerCase().includes(filtrosAplicados.nome.toLowerCase())
+    const matchData = !filtrosAplicados.data || treinado.dataConclusao.includes(filtrosAplicados.data)
+    const matchCarteira =
+      filtrosAplicados.carteira === "Todas as carteiras" || treinado.carteira === filtrosAplicados.carteira
+    const matchTurno = filtrosAplicados.turno === "Todos os turnos" || treinado.turno === filtrosAplicados.turno
+    return matchAssunto && matchNome && matchData && matchCarteira && matchTurno
   })
 
   // Simular importação de planilha
@@ -68,14 +66,26 @@ export function TreinadosTab() {
     // Em uma implementação real, isso abriria um file picker
     const novosTreinados = [
       {
-        id: treinados.length + 1,
+        id: operadoresTreinados.length + 1,
         nome: "Importado da Planilha",
         assunto: "Treinamento Inicial",
-        dataConlusao: "2024-01-16",
+        dataConclusao: "2024-01-16",
         carteira: "CAIXA",
+        turno: "Manhã",
       },
     ]
-    setTreinados([...treinados, ...novosTreinados])
+    setFiltroData("")
+    setFiltroTurno("Todos os turnos")
+    setFiltroCarteira("Todas as carteiras")
+    setFiltroNome("")
+    setFiltroAssunto("")
+    setFiltrosAplicados({
+      data: "",
+      turno: "Todos os turnos",
+      carteira: "Todas as carteiras",
+      nome: "",
+      assunto: "",
+    })
     alert("Planilha importada com sucesso!")
   }
 
@@ -83,8 +93,8 @@ export function TreinadosTab() {
   const handleDownloadPlanilha = () => {
     // Em uma implementação real, isso geraria e baixaria um arquivo Excel
     const csvContent =
-      "Nome,Assunto,Data Conclusão,Carteira\n" +
-      treinadosFiltrados.map((t) => `${t.nome},${t.assunto},${t.dataConlusao},${t.carteira}`).join("\n")
+      "Nome,Assunto,Data Conclusão,Carteira,Turno\n" +
+      treinadosFiltrados.map((t) => `${t.nome},${t.assunto},${t.dataConclusao},${t.carteira},${t.turno}`).join("\n")
 
     const blob = new Blob([csvContent], { type: "text/csv" })
     const url = window.URL.createObjectURL(blob)
@@ -95,8 +105,142 @@ export function TreinadosTab() {
     window.URL.revokeObjectURL(url)
   }
 
+  const handleConfirmarFiltro = () => {
+    setFiltrosAplicados({
+      data: filtroData,
+      turno: filtroTurno,
+      carteira: filtroCarteira,
+      nome: filtroNome,
+      assunto: filtroAssunto,
+    })
+    setShowFilters(false)
+  }
+
+  const handleRemoverFiltro = () => {
+    setFiltroData("")
+    setFiltroTurno("Todos os turnos")
+    setFiltroCarteira("Todas as carteiras")
+    setFiltroNome("")
+    setFiltroAssunto("")
+    setFiltrosAplicados({
+      data: "",
+      turno: "Todos os turnos",
+      carteira: "Todas as carteiras",
+      nome: "",
+      assunto: "",
+    })
+    setShowFilters(false)
+  }
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="gap-2">
+          <Filter className="h-4 w-4" />
+          {showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
+        </Button>
+
+        {(filtrosAplicados.data ||
+          filtrosAplicados.turno !== "Todos os turnos" ||
+          filtrosAplicados.carteira !== "Todas as carteiras" ||
+          filtrosAplicados.nome ||
+          filtrosAplicados.assunto) && (
+          <Badge variant="secondary" className="gap-2">
+            Filtros aplicados
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRemoverFiltro}
+              className="h-4 w-4 p-0 hover:bg-transparent"
+            >
+              ×
+            </Button>
+          </Badge>
+        )}
+      </div>
+
+      {showFilters && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtros
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div>
+                <Label htmlFor="filtro-data">Data</Label>
+                <Input
+                  id="filtro-data"
+                  type="date"
+                  value={filtroData}
+                  onChange={(e) => setFiltroData(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="filtro-turno">Turno</Label>
+                <Select value={filtroTurno} onValueChange={setFiltroTurno}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos os turnos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Todos os turnos">Todos os turnos</SelectItem>
+                    <SelectItem value="Manhã">Manhã</SelectItem>
+                    <SelectItem value="Tarde">Tarde</SelectItem>
+                    <SelectItem value="Integral">Integral</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="filtro-carteira">Carteira</Label>
+                <Select value={filtroCarteira} onValueChange={setFiltroCarteira}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas as carteiras" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Todas as carteiras">Todas as carteiras</SelectItem>
+                    {carteiras.map((carteira) => (
+                      <SelectItem key={carteira.name} value={carteira.name}>
+                        {carteira.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="filtro-nome">Nome</Label>
+                <Input
+                  id="filtro-nome"
+                  placeholder="Digite o nome..."
+                  value={filtroNome}
+                  onChange={(e) => setFiltroNome(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="filtro-assunto">Assunto</Label>
+                <Input
+                  id="filtro-assunto"
+                  placeholder="Digite o assunto..."
+                  value={filtroAssunto}
+                  onChange={(e) => setFiltroAssunto(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleConfirmarFiltro} className="flex-1">
+                Confirmar Filtro
+              </Button>
+              <Button variant="outline" onClick={handleRemoverFiltro} className="flex-1 bg-transparent">
+                Remover Filtro
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -133,7 +277,9 @@ export function TreinadosTab() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">{Math.round(totalTreinados / assuntosUnicos.length)}</div>
+            <div className="text-3xl font-bold text-blue-600">
+              {assuntosUnicos.length > 0 ? Math.round(totalTreinados / assuntosUnicos.length) : 0}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">Operadores por tipo de treinamento</p>
           </CardContent>
         </Card>
@@ -244,24 +390,6 @@ export function TreinadosTab() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <Label htmlFor="filtro-nome">Filtrar por Nome</Label>
-              <Input
-                id="filtro-nome"
-                placeholder="Digite o nome do operador..."
-                value={filtroNome}
-                onChange={(e) => setFiltroNome(e.target.value)}
-              />
-            </div>
-            <div className="flex-1">
-              <Label htmlFor="filtro-assunto">Filtrar por Assunto</Label>
-              <Input
-                id="filtro-assunto"
-                placeholder="Digite o assunto..."
-                value={filtroAssunto}
-                onChange={(e) => setFiltroAssunto(e.target.value)}
-              />
-            </div>
             <div className="flex flex-col justify-end gap-2">
               {isAdmin && (
                 <Button onClick={handleImportPlanilha} className="gap-2">
@@ -294,7 +422,7 @@ export function TreinadosTab() {
                     <TableRow key={treinado.id}>
                       <TableCell className="font-medium">{treinado.nome}</TableCell>
                       <TableCell>{treinado.assunto}</TableCell>
-                      <TableCell>{new Date(treinado.dataConlusao).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell>{new Date(treinado.dataConclusao).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{treinado.carteira}</Badge>
                       </TableCell>
