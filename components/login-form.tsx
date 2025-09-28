@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +17,37 @@ export function LoginForm() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { login } = useAuth()
+
+  const [displayText, setDisplayText] = useState("")
+  const [isVisible, setIsVisible] = useState(true)
+  const fullText = "Área de Qualidade"
+
+  useEffect(() => {
+    const typewriterEffect = () => {
+      setDisplayText("")
+      setIsVisible(true)
+
+      let currentIndex = 0
+      const typeInterval = setInterval(() => {
+        if (currentIndex <= fullText.length) {
+          setDisplayText(fullText.slice(0, currentIndex))
+          currentIndex++
+        } else {
+          clearInterval(typeInterval)
+
+          setTimeout(() => {
+            setIsVisible(false)
+
+            setTimeout(() => {
+              typewriterEffect()
+            }, 1000)
+          }, 2000)
+        }
+      }, 100)
+    }
+
+    typewriterEffect()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,7 +69,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-accent/20 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background to-accent/20 p-4">
       <Card className="w-full max-w-md shadow-2xl border-0 bg-card/95 backdrop-blur">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center">
@@ -91,19 +121,20 @@ export function LoginForm() {
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground mb-2">Contas de teste:</p>
-            <div className="text-xs space-y-1">
-              <p>
-                <strong>Admin:</strong> admin@empresa.com / 123456
-              </p>
-              <p>
-                <strong>Usuário:</strong> usuario@empresa.com / 123456
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
+
+      <div className="mt-8 h-8 flex items-center justify-center">
+        <div
+          className={`text-orange-500 font-medium text-lg italic transition-opacity duration-1000 ${
+            isVisible ? "opacity-100" : "opacity-0"
+          }`}
+          style={{ fontFamily: "monospace" }}
+        >
+          {displayText}
+          <span className="animate-pulse">|</span>
+        </div>
+      </div>
     </div>
   )
 }

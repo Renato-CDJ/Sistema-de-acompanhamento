@@ -31,8 +31,13 @@ export const mockUsers: User[] = [
 export const authenticateUser = async (email: string, password: string): Promise<User | null> => {
   // Mock authentication logic
   const user = mockUsers.find((u) => u.email === email)
-  if (user && password === "123456") {
-    return user
+  if (user) {
+    if (user.email === "admin@empresa.com" && password === "qualidade@$.") {
+      return user
+    }
+    if (user.email === "usuario@empresa.com" && password === "123456") {
+      return user
+    }
   }
   return null
 }

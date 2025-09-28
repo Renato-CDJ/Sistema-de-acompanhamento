@@ -1,22 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
-import { Plus, Eye, EyeOff, Calendar, BarChart3, Edit, Trash2 } from "lucide-react"
+import { Eye, EyeOff, Calendar, BarChart3, Edit, Trash2, ChevronDown } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/auth"
 import { useData } from "@/contexts/data-context"
@@ -40,6 +32,10 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     deleteDadosDiarios,
     estatisticasCarteiras,
     addEstatisticasCarteira,
+    carteiras,
+    addCarteira,
+    updateCarteira,
+    deleteCarteira,
   } = useData()
 
   const [selectedOption, setSelectedOption] = useState("caixa")
@@ -47,7 +43,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
   const [showCharts, setShowCharts] = useState(true)
   const [showCarteiraDetails, setShowCarteiraDetails] = useState(false)
 
-  const [carteiras, setCarteiras] = useState([])
   const [newCarteira, setNewCarteira] = useState("")
   const [editingCarteira, setEditingCarteira] = useState(null)
   const [isCarteiraDialogOpen, setIsCarteiraDialogOpen] = useState(false)
@@ -73,10 +68,14 @@ export function QuadroTab({ filters }: QuadroTabProps) {
   })
 
   const filteredDadosDiarios = dadosDiarios.filter((dados) => {
-    // Filtro por seção
+    // Filtro por seção baseado na opção selecionada
     let matchesSecao = true
+    const currentSecao = selectedOption === "caixa" ? "Caixa" : "Cobrança"
     if (filters?.secao && filters.secao !== "Todas as seções") {
       matchesSecao = dados.secao.toLowerCase() === filters.secao.toLowerCase()
+    } else {
+      // Se não há filtro específico, mostrar dados da seção atual
+      matchesSecao = dados.secao === currentSecao
     }
 
     // Filtro por turno
@@ -100,6 +99,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     console.log("[v0] Filtrando dados:", {
       dados: dados,
       filters: filters,
+      currentSecao,
       matchesSecao,
       matchesTurno,
       matchesDataInicio,
@@ -138,20 +138,11 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       return
     }
 
-    const newId = carteiras.length > 0 ? Math.max(...carteiras.map((c) => c.id)) + 1 : 1
-    const newCarteiraObj = {
-      id: newId,
-      name: newCarteira,
-      total: 0,
-      presentes: 0,
-      faltas: 0,
-      abs: "0%",
-    }
-
-    setCarteiras([...carteiras, newCarteiraObj])
+    addCarteira({ name: newCarteira })
     setNewCarteira("")
     setIsCarteiraDialogOpen(false)
     alert("Carteira adicionada com sucesso!")
+    console.log("[v0] Carteira adicionada via QuadroTab:", newCarteira)
   }
 
   const handleEditCarteira = (carteira) => {
@@ -166,18 +157,26 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       return
     }
 
-    setCarteiras(carteiras.map((c) => (c.id === editingCarteira.id ? { ...c, name: newCarteira } : c)))
+    const carteiraIndex = carteiras.findIndex((c) => c.name === editingCarteira.name)
+    if (carteiraIndex !== -1) {
+      updateCarteira(carteiraIndex, { ...editingCarteira, name: newCarteira })
+    }
 
     setEditingCarteira(null)
     setNewCarteira("")
     setIsCarteiraDialogOpen(false)
     alert("Carteira atualizada com sucesso!")
+    console.log("[v0] Carteira atualizada via QuadroTab:", newCarteira)
   }
 
-  const handleDeleteCarteira = (carteiraId) => {
+  const handleDeleteCarteira = (carteiraName) => {
     if (confirm("Tem certeza que deseja excluir esta carteira?")) {
-      setCarteiras(carteiras.filter((c) => c.id !== carteiraId))
+      const carteiraIndex = carteiras.findIndex((c) => c.name === carteiraName)
+      if (carteiraIndex !== -1) {
+        deleteCarteira(carteiraIndex)
+      }
       alert("Carteira excluída com sucesso!")
+      console.log("[v0] Carteira excluída via QuadroTab:", carteiraName)
     }
   }
 
@@ -246,7 +245,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       return
     }
 
-    const selectedCarteiraName = carteiras.find((c) => c.id === Number.parseInt(carteiraStatsData.carteira))?.name
+    const selectedCarteiraName = carteiras.find((c) => c.name === carteiraStatsData.carteira)?.name
 
     const newStat = {
       date: carteiraStatsData.date,
@@ -258,23 +257,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     }
 
     addEstatisticasCarteira(newStat)
-
-    const abs =
-      carteiraStatsData.total > 0 ? ((carteiraStatsData.faltas / carteiraStatsData.total) * 100).toFixed(1) + "%" : "0%"
-
-    setCarteiras(
-      carteiras.map((c) =>
-        c.name === selectedCarteiraName
-          ? {
-              ...c,
-              total: carteiraStatsData.total,
-              presentes: carteiraStatsData.presentes,
-              faltas: carteiraStatsData.faltas,
-              abs: abs,
-            }
-          : c,
-      ),
-    )
 
     alert("Estatísticas por carteira salvas com sucesso!")
 
@@ -327,16 +309,59 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     }
   }
 
-  useEffect(() => {
-    // Simulação de carregamento de carteiras
-    setCarteiras([
-      { id: 1, name: "Carteira 1", total: 0, presentes: 0, faltas: 0, abs: "0%" },
-      { id: 2, name: "Carteira 2", total: 0, presentes: 0, faltas: 0, abs: "0%" },
-    ])
-  }, [])
+  // Removed useEffect for initial carteiras as they are now predefined
+  // useEffect(() => {
+  //   // Simulação de carregamento de carteiras
+  //   setCarteiras([
+  //     { id: 1, name: "Carteira 1", total: 0, presentes: 0, faltas: 0, abs: "0%" },
+  //     { id: 2, name: "Carteira 2", total: 0, presentes: 0, faltas: 0, abs: "0%" },
+  //   ])
+  // }, [])
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="option-select" className="text-sm font-medium">
+              Opção
+            </Label>
+            <Select value={selectedOption} onValueChange={setSelectedOption}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="caixa">Caixa</SelectItem>
+                <SelectItem value="cobranca">Cobrança</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="turno-select" className="text-sm font-medium">
+              Turno
+            </Label>
+            <Select value={selectedTurno} onValueChange={setSelectedTurno}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="geral">Geral</SelectItem>
+                <SelectItem value="manha">Manhã</SelectItem>
+                <SelectItem value="tarde">Tarde</SelectItem>
+                <SelectItem value="integral">Integral</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Button variant="outline" onClick={() => setShowCharts(!showCharts)} className="gap-2">
+          {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {showCharts ? "Ocultar Gráficos" : "Mostrar Gráficos"}
+        </Button>
+      </div>
+
+      {/* Statistics Cards - Same for both sections */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -396,44 +421,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
               <Button variant="outline" onClick={() => setShowCarteiraDetails(!showCarteiraDetails)}>
                 {showCarteiraDetails ? "Ocultar Detalhes" : "Mostrar Detalhes"}
               </Button>
-              {isAdmin && (
-                <Dialog open={isCarteiraDialogOpen} onOpenChange={setIsCarteiraDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setEditingCarteira(null)
-                        setNewCarteira("")
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Adicionar Carteira
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{editingCarteira ? "Editar Carteira" : "Adicionar Nova Carteira"}</DialogTitle>
-                      <DialogDescription>
-                        {editingCarteira ? "Edite o nome da carteira" : "Adicione uma nova carteira ao sistema"}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="carteira-name">Nome da Carteira</Label>
-                        <Input
-                          id="carteira-name"
-                          placeholder="Nome da carteira"
-                          value={newCarteira}
-                          onChange={(e) => setNewCarteira(e.target.value)}
-                        />
-                      </div>
-                      <Button className="w-full" onClick={editingCarteira ? handleUpdateCarteira : handleAddCarteira}>
-                        {editingCarteira ? "Atualizar" : "Adicionar"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
             </div>
           </div>
 
@@ -448,10 +435,10 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {carteiras.length === 0 ? (
+                {carteiras.length === 0 && filteredCarteiraStats.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p>Nenhuma carteira cadastrada ainda.</p>
-                    <p className="text-sm">Adicione uma carteira para começar a registrar estatísticas.</p>
+                    <p>Nenhuma carteira cadastrada.</p>
+                    <p className="text-sm">Acesse a aba "Carteiras" para gerenciar as carteiras.</p>
                   </div>
                 ) : (
                   <Table>
@@ -464,7 +451,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                         <TableHead>ABS</TableHead>
                         <TableHead>Turno</TableHead>
                         {filters?.dateRange?.start || (filters?.dateRange?.end && <TableHead>Data</TableHead>)}
-                        {isAdmin && <TableHead>Ações</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -483,44 +469,16 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                                 (filters?.dateRange?.end && (
                                   <TableCell>{new Date(stat.date).toLocaleDateString("pt-BR")}</TableCell>
                                 ))}
-                              {isAdmin && (
-                                <TableCell>
-                                  <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => handleEditCarteira(stat)}>
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleDeleteCarteira(stat.id)}>
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              )}
                             </TableRow>
                           ))
                         : carteiras.map((carteira) => (
-                            <TableRow key={carteira.id}>
+                            <TableRow key={carteira.name}>
                               <TableCell className="font-medium">{carteira.name}</TableCell>
                               <TableCell>{carteira.total}</TableCell>
-                              <TableCell className="text-green-600">{carteira.presentes}</TableCell>
-                              <TableCell className="text-red-600">{carteira.faltas}</TableCell>
-                              <TableCell>{carteira.abs}</TableCell>
+                              <TableCell className="text-green-600">{carteira.aplicados}</TableCell>
+                              <TableCell className="text-red-600">{carteira.pendentes}</TableCell>
+                              <TableCell>{carteira.taxa.toFixed(1)}%</TableCell>
                               <TableCell>-</TableCell>
-                              {isAdmin && (
-                                <TableCell>
-                                  <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => handleEditCarteira(carteira)}>
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleDeleteCarteira(carteira.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              )}
                             </TableRow>
                           ))}
                     </TableBody>
@@ -561,11 +519,17 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                           <SelectValue placeholder="Selecione a carteira" />
                         </SelectTrigger>
                         <SelectContent>
-                          {carteiras.map((carteira) => (
-                            <SelectItem key={carteira.id} value={carteira.id.toString()}>
-                              {carteira.name}
-                            </SelectItem>
-                          ))}
+                          {carteiras.length === 0 ? (
+                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                              Nenhuma carteira cadastrada. Acesse a aba "Carteiras" para adicionar.
+                            </div>
+                          ) : (
+                            carteiras.map((carteira) => (
+                              <SelectItem key={carteira.name} value={carteira.name}>
+                                {carteira.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -634,13 +598,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
         </div>
       )}
 
-      <div className="flex justify-end">
-        <Button variant="outline" onClick={() => setShowCharts(!showCharts)} className="gap-2">
-          {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          {showCharts ? "Ocultar Gráficos" : "Mostrar Gráficos"}
-        </Button>
-      </div>
-
+      {/* Charts Section */}
       {showCharts && pieData.length > 0 && (
         <Card>
           <CardHeader>
@@ -671,6 +629,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
         </Card>
       )}
 
+      {/* Daily Data Entry Section */}
       {isAdmin && (
         <Card>
           <CardHeader>
@@ -784,6 +743,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
         </Card>
       )}
 
+      {/* Historical Data Section */}
       <Card>
         <CardHeader>
           <CardTitle>Histórico de Dados</CardTitle>
@@ -796,7 +756,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
               (!filters?.turno || filters.turno === "Todos os turnos") &&
               !filters?.dateRange?.start &&
               !filters?.dateRange?.end &&
-              "Todos os registros"}
+              `Registros de ${selectedOption === "caixa" ? "Caixa" : "Cobrança"}`}
           </CardDescription>
         </CardHeader>
         <CardContent>

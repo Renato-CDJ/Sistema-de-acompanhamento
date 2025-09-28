@@ -17,7 +17,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
-import { Plus, Eye, EyeOff, Calendar, BookOpen, Users, CheckCircle, Clock } from "lucide-react"
+import { Plus, Eye, EyeOff, Calendar, BookOpen, Users, CheckCircle, Clock, Edit, Trash2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useData } from "@/contexts/data-context"
 import { hasPermission } from "@/lib/auth"
@@ -51,6 +51,8 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
     addTreinamento,
     updateTreinamento,
     addAssunto,
+    updateAssunto,
+    deleteAssunto,
     getCapacitacaoStats,
   } = useData()
 
@@ -342,7 +344,101 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
       </Card>
 
       {/* Charts Toggle */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {isAdmin && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2 bg-transparent">
+                <BookOpen className="h-4 w-4" />
+                Gerenciar Assunto Capacitação
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Gerenciar Assuntos de Capacitação</DialogTitle>
+                <DialogDescription>Gerencie os assuntos disponíveis para treinamentos de capacitação</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={novoAssunto}
+                    onChange={(e) => setNovoAssunto(e.target.value)}
+                    placeholder="Nome do novo assunto"
+                    className="flex-1"
+                  />
+                  <Button onClick={handleAddAssunto}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar
+                  </Button>
+                </div>
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Assunto</TableHead>
+                        <TableHead className="w-24">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {assuntos.length > 0 ? (
+                        assuntos.map((assunto, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{assunto}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const novoNome = prompt("Editar assunto:", assunto)
+                                    if (novoNome && novoNome.trim() && novoNome !== assunto) {
+                                      updateAssunto(index, novoNome.trim())
+                                      toast({
+                                        title: "Sucesso!",
+                                        description: "Assunto atualizado com sucesso.",
+                                        variant: "default",
+                                      })
+                                    }
+                                  }}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (confirm(`Tem certeza que deseja excluir o assunto "${assunto}"?`)) {
+                                      deleteAssunto(index)
+                                      toast({
+                                        title: "Sucesso!",
+                                        description: "Assunto removido com sucesso.",
+                                        variant: "default",
+                                      })
+                                    }
+                                  }}
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={2} className="text-center py-4 text-muted-foreground">
+                            Nenhum assunto cadastrado
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
         <Button variant="outline" onClick={() => setShowCharts(!showCharts)} className="gap-2">
           {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           {showCharts ? "Ocultar Gráficos" : "Mostrar Gráficos"}
@@ -515,34 +611,6 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
               <Button onClick={handleAddTreinamento} className="flex-1">
                 Adicionar Treinamento
               </Button>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo Assunto
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Adicionar Novo Assunto</DialogTitle>
-                    <DialogDescription>Adicione um novo assunto de capacitação</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="novo-assunto">Nome do Assunto</Label>
-                      <Input
-                        id="novo-assunto"
-                        value={novoAssunto}
-                        onChange={(e) => setNovoAssunto(e.target.value)}
-                        placeholder="Nome do assunto"
-                      />
-                    </div>
-                    <Button onClick={handleAddAssunto} className="w-full">
-                      Adicionar
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
           </CardContent>
         </Card>

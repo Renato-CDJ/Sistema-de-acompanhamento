@@ -14,6 +14,7 @@ import {
   GraduationCap,
   UserCheck,
   UserX,
+  Wallet,
   LogOut,
   Menu,
   X,
@@ -50,6 +51,8 @@ const tabs = [
   { id: "capacitacao", label: "Capacitação", icon: GraduationCap },
   { id: "treinados", label: "Treinados", icon: UserCheck },
   { id: "desligamentos", label: "Desligamentos", icon: UserX },
+  { id: "carteiras", label: "Carteiras", icon: Wallet },
+  { id: "operadores", label: "Operadores", icon: Users },
 ]
 
 export function DashboardLayout({
@@ -157,11 +160,6 @@ export function DashboardLayout({
                   {carteira.name}
                 </SelectItem>
               ))}
-              <SelectItem value="CAIXA">CAIXA</SelectItem>
-              <SelectItem value="BTG">BTG</SelectItem>
-              <SelectItem value="BMG">BMG</SelectItem>
-              <SelectItem value="Carrefour">Carrefour</SelectItem>
-              <SelectItem value="WILLBANK">WILLBANK</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -238,6 +236,8 @@ export function DashboardLayout({
           )
         case "quadro":
         case "overview":
+        case "carteiras":
+        case "operadores":
           return secaoFilter
         default:
           return secaoFilter

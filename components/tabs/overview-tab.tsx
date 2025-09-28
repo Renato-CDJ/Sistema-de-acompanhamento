@@ -76,14 +76,6 @@ export function OverviewTab({ filters }: OverviewTabProps) {
     const matchSecao =
       !filters.secao || filters.secao === "Todas as seções" || dados.secao.toLowerCase() === filters.secao.toLowerCase()
 
-    console.log("[v0] Filtrando dados diários na overview:", {
-      dados: dados,
-      filters: filters,
-      matchDateRange,
-      matchTurno,
-      matchSecao,
-    })
-
     return matchDateRange && matchTurno && matchSecao
   })
 
@@ -202,12 +194,17 @@ export function OverviewTab({ filters }: OverviewTabProps) {
     { name: "INSS", value: totalINSS, color: "#8b5cf6", visible: visibleStats.inss },
   ].filter((item) => item.value > 0 && item.visible)
 
-  const barData = filteredDadosDiarios.slice(-5).map((dados, index) => ({
-    month: new Date(dados.date).toLocaleDateString("pt-BR", { month: "short" }),
-    funcionarios: dados.total,
-    treinamentos: filteredCapacitacaoStats.aplicados,
-    desligamentos: filteredDesligamentosStats.totalDesligamentos,
-  }))
+  const barData = filteredDadosDiarios
+    .slice(-7) // Show last 7 entries instead of 5 for better visualization
+    .map((dados) => {
+      const date = new Date(dados.date)
+      return {
+        month: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+        funcionarios: dados.total,
+        treinamentos: filteredCapacitacaoStats.aplicados,
+        desligamentos: filteredDesligamentosStats.totalDesligamentos,
+      }
+    })
 
   const handleStatsToggle = (key: string, value: boolean) => {
     setVisibleStats((prev) => ({ ...prev, [key]: value }))

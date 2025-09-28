@@ -25,8 +25,6 @@ const motivosDesligamento = [
   "Abandono de Emprego",
 ]
 
-const carteirasDisponiveis = ["CAIXA", "BTG", "BMG", "Carrefour", "WILLBANK"]
-
 interface DesligamentosTabProps {
   filters?: {
     dateRange?: { start: string; end: string }
@@ -39,7 +37,8 @@ interface DesligamentosTabProps {
 export function DesligamentosTab({ filters }: DesligamentosTabProps) {
   const { user } = useAuth()
   const isAdmin = hasPermission(user, "edit")
-  const { desligamentos, addDesligamento, updateDesligamento, deleteDesligamento, getDesligamentosStats } = useData()
+  const { desligamentos, addDesligamento, updateDesligamento, deleteDesligamento, getDesligamentosStats, carteiras } =
+    useData()
 
   const [showCharts, setShowCharts] = useState(true)
   const [dateFilter, setDateFilter] = useState("")
@@ -50,10 +49,10 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
   // Form state para novo desligamento
   const [novoDesligamento, setNovoDesligamento] = useState({
     nome: "",
-    carteira: "CAIXA", // Default value set to "CAIXA"
+    carteira: "",
     turno: "",
     data: "",
-    motivo: "Pedido de Demissão", // Default value set to "Pedido de Demissão"
+    motivo: "",
     avisoPrevia: "Com" as "Com" | "Sem",
     responsavel: "",
     veioAgencia: "Não" as "Sim" | "Não",
@@ -62,45 +61,6 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
 
   // Estado para edição de desligamentos
   const [editingDesligamento, setEditingDesligamento] = useState<any>(null)
-
-  const filteredDesligamentos = desligamentos.filter((desligamento) => {
-    // Filtros globais
-    const matchesDateRange =
-      !filters?.dateRange?.start ||
-      !filters?.dateRange?.end ||
-      (desligamento.data >= filters.dateRange.start && desligamento.data <= filters.dateRange.end)
-
-    const matchesTurno =
-      !filters?.turno ||
-      filters.turno === "Todos os turnos" ||
-      desligamento.turno.toLowerCase() === filters.turno.toLowerCase()
-
-    const matchesCarteira =
-      !filters?.carteira || filters.carteira === "Todas as carteiras" || desligamento.carteira === filters.carteira
-
-    const matchesMotivo =
-      !filters?.motivo || filters.motivo === "Todos os motivos" || desligamento.motivo === filters.motivo
-
-    // Filtros locais (mantidos para compatibilidade)
-    const matchesLocalDate = !dateFilter || desligamento.data === dateFilter
-    const matchesLocalCarteira =
-      carteiraFilter === "todas" || !carteiraFilter || desligamento.carteira === carteiraFilter
-
-    console.log("[v0] Filtrando desligamentos:", {
-      desligamento: desligamento,
-      filters: filters,
-      matchesDateRange,
-      matchesTurno,
-      matchesCarteira,
-      matchesMotivo,
-      matchesLocalDate,
-      matchesLocalCarteira,
-    })
-
-    return (
-      matchesDateRange && matchesTurno && matchesCarteira && matchesMotivo && matchesLocalDate && matchesLocalCarteira
-    )
-  })
 
   const handleEditDesligamento = (desligamento: any) => {
     setEditingDesligamento(desligamento)
@@ -141,10 +101,10 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
       // Reset form
       setNovoDesligamento({
         nome: "",
-        carteira: "CAIXA", // Default value set to "CAIXA"
+        carteira: "",
         turno: "",
         data: "",
-        motivo: "Pedido de Demissão", // Default value set to "Pedido de Demissão"
+        motivo: "",
         avisoPrevia: "Com",
         responsavel: "",
         veioAgencia: "Não",
@@ -169,9 +129,9 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
     }))
     .filter((item) => item.value > 0)
 
-  const carteiraDesligamentos = carteirasDisponiveis.map((carteira) => ({
-    carteira,
-    quantidade: desligamentos.filter((d) => d.carteira === carteira).length,
+  const carteiraDesligamentos = carteiras.map((carteira) => ({
+    carteira: carteira.name,
+    quantidade: desligamentos.filter((d) => d.carteira === carteira.name).length,
   }))
 
   return (
@@ -284,17 +244,24 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
               <CardDescription>Distribuição de desligamentos por carteira</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {carteiraDesligamentos.map((item, index) => (
-                  <Card key={index}>
-                    <CardContent className="p-4 text-center">
-                      <h4 className="font-semibold text-sm mb-2">{item.carteira}</h4>
-                      <div className="text-2xl font-bold text-red-600">{item.quantidade}</div>
-                      <p className="text-xs text-muted-foreground">desligamentos</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {carteiraDesligamentos.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {carteiraDesligamentos.map((item, index) => (
+                    <Card key={index}>
+                      <CardContent className="p-4 text-center">
+                        <h4 className="font-semibold text-sm mb-2">{item.carteira}</h4>
+                        <div className="text-2xl font-bold text-red-600">{item.quantidade}</div>
+                        <p className="text-xs text-muted-foreground">desligamentos</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nenhuma carteira cadastrada ainda.</p>
+                  <p className="text-sm">Acesse a aba "Carteiras" para gerenciar as carteiras.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </>
@@ -391,11 +358,17 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                     <SelectValue placeholder="Selecionar carteira" />
                   </SelectTrigger>
                   <SelectContent>
-                    {carteirasDisponiveis.map((carteira) => (
-                      <SelectItem key={carteira} value={carteira}>
-                        {carteira}
-                      </SelectItem>
-                    ))}
+                    {carteiras.length === 0 ? (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        Nenhuma carteira cadastrada. Acesse a aba "Carteiras" para adicionar.
+                      </div>
+                    ) : (
+                      carteiras.map((carteira) => (
+                        <SelectItem key={carteira.name} value={carteira.name}>
+                          {carteira.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -426,21 +399,12 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
               </div>
               <div>
                 <Label htmlFor="motivo">Motivo *</Label>
-                <Select
+                <Input
+                  id="motivo"
                   value={novoDesligamento.motivo}
-                  onValueChange={(value) => setNovoDesligamento({ ...novoDesligamento, motivo: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar motivo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {motivosDesligamento.map((motivo) => (
-                      <SelectItem key={motivo} value={motivo}>
-                        {motivo}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(e) => setNovoDesligamento({ ...novoDesligamento, motivo: e.target.value })}
+                  placeholder="Digite o motivo do desligamento"
+                />
               </div>
               <div>
                 <Label htmlFor="aviso-previa">Aviso Prévio</Label>
@@ -507,10 +471,10 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                     setEditingDesligamento(null)
                     setNovoDesligamento({
                       nome: "",
-                      carteira: "CAIXA", // Default value set to "CAIXA"
+                      carteira: "",
                       turno: "",
                       data: "",
-                      motivo: "Pedido de Demissão", // Default value set to "Pedido de Demissão"
+                      motivo: "",
                       avisoPrevia: "Com",
                       responsavel: "",
                       veioAgencia: "Não",
@@ -546,9 +510,9 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas</SelectItem>
-                  {carteirasDisponiveis.map((carteira) => (
-                    <SelectItem key={carteira} value={carteira}>
-                      {carteira}
+                  {carteiras.map((carteira) => (
+                    <SelectItem key={carteira.name} value={carteira.name}>
+                      {carteira.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -570,7 +534,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
           <CardDescription>Histórico completo de desligamentos</CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredDesligamentos.length === 0 ? (
+          {desligamentos.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>Nenhum desligamento registrado ainda.</p>
               <p className="text-sm">Use o formulário acima para registrar desligamentos.</p>
@@ -593,7 +557,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDesligamentos.map((desligamento) => (
+                  {desligamentos.map((desligamento) => (
                     <TableRow key={desligamento.id}>
                       <TableCell className="font-medium">{desligamento.nome}</TableCell>
                       <TableCell>

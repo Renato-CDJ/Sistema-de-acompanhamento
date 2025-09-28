@@ -124,4 +124,62 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Adding icon color fixes for dark theme */
+  /* Ensure all Lucide icons are properly colored in dark theme */
+  .dark svg[data-lucide] {
+    color: hsl(var(--foreground));
+  }
+
+  /* Specific icon color overrides for better visibility */
+  .dark .text-muted-foreground svg[data-lucide] {
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Calendar and date picker icons */
+  .dark [data-slot="calendar"] svg[data-lucide] {
+    color: hsl(var(--foreground));
+  }
+
+  /* Button icons */
+  .dark button svg[data-lucide] {
+    color: currentColor;
+  }
+
+  /* Input and form icons */
+  .dark input + svg[data-lucide],
+  .dark .relative svg[data-lucide] {
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Dropdown and select icons */
+  .dark [data-radix-select-trigger] svg[data-lucide] {
+    color: hsl(var(--foreground));
+  }
+
+  /* Table action icons */
+  .dark table svg[data-lucide] {
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Navigation and sidebar icons */
+  .dark nav svg[data-lucide],
+  .dark [data-sidebar] svg[data-lucide] {
+    color: hsl(var(--sidebar-foreground));
+  }
+
+  /* Dialog and modal icons */
+  .dark [data-radix-dialog-content] svg[data-lucide] {
+    color: hsl(var(--foreground));
+  }
+
+  /* Ensure icons in cards are visible */
+  .dark .card svg[data-lucide] {
+    color: hsl(var(--card-foreground));
+  }
+
+  /* Override any opacity issues on icons */
+  .dark svg[data-lucide].opacity-50 {
+    opacity: 0.7 !important;
+  }
 }

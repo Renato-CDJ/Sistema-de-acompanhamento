@@ -9,6 +9,8 @@ import { QuadroTab } from "@/components/tabs/quadro-tab"
 import { CapacitacaoTab } from "@/components/tabs/capacitacao-tab"
 import { TreinadosTab } from "@/components/tabs/treinados-tab"
 import { DesligamentosTab } from "@/components/tabs/desligamentos-tab"
+import { CarteirasTab } from "@/components/tabs/carteiras-tab"
+import { OperadoresTab } from "@/components/tabs/operadores-tab"
 
 interface Filters {
   dateRange?: { start: string; end: string }
@@ -30,18 +32,15 @@ export default function HomePage() {
   }
 
   const handleApplyFilters = () => {
-    console.log("[v0] Aplicando filtros:", filters)
     setAppliedFilters({ ...filters })
   }
 
   const handleClearFilters = () => {
-    console.log("[v0] Limpando filtros")
     setFilters({})
     setAppliedFilters({})
   }
 
   const handleFiltersChange = (newFilters: Filters) => {
-    console.log("[v0] Alterando filtros:", newFilters)
     setFilters(newFilters)
   }
 
@@ -57,6 +56,10 @@ export default function HomePage() {
         return <TreinadosTab filters={appliedFilters} />
       case "desligamentos":
         return <DesligamentosTab filters={appliedFilters} />
+      case "carteiras":
+        return <CarteirasTab filters={appliedFilters} />
+      case "operadores":
+        return <OperadoresTab filters={appliedFilters} />
       default:
         return <OverviewTab filters={appliedFilters} />
     }

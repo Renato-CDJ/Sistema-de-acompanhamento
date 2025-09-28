@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
-import { Upload, Download, Eye, EyeOff, Users, BookOpen, Award, FileSpreadsheet, Filter } from "lucide-react"
+import { Eye, EyeOff, Users, BookOpen, Award, Filter } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useData } from "@/contexts/data-context"
 import { hasPermission } from "@/lib/auth"
@@ -41,7 +40,6 @@ export function TreinadosTab({ filters }: TreinadosTabProps) {
 
   const [filtroAssunto, setFiltroAssunto] = useState("")
   const [filtroNome, setFiltroNome] = useState("")
-
   const [filtroData, setFiltroData] = useState("")
   const [filtroTurno, setFiltroTurno] = useState("Todos os turnos")
   const [filtroCarteira, setFiltroCarteira] = useState("Todas as carteiras")
@@ -73,7 +71,7 @@ export function TreinadosTab({ filters }: TreinadosTabProps) {
     const matchCarteira =
       !filters?.carteira || filters.carteira === "Todas as carteiras" || treinado.carteira === filters.carteira
 
-    const matchStatus = !filters?.status || filters.status === "Todos os status" // Todos os treinados têm status "Aplicado"
+    const matchStatus = !filters?.status || filters.status === "Todos os status"
 
     // Filtros locais (mantidos para compatibilidade)
     const matchAssunto =
@@ -84,20 +82,6 @@ export function TreinadosTab({ filters }: TreinadosTabProps) {
     const matchLocalCarteira =
       filtrosAplicados.carteira === "Todas as carteiras" || treinado.carteira === filtrosAplicados.carteira
     const matchLocalTurno = filtrosAplicados.turno === "Todos os turnos" || treinado.turno === filtrosAplicados.turno
-
-    console.log("[v0] Filtrando treinados:", {
-      treinado: treinado,
-      filters: filters,
-      matchDateRange,
-      matchTurno,
-      matchCarteira,
-      matchStatus,
-      matchAssunto,
-      matchNome,
-      matchData,
-      matchLocalCarteira,
-      matchLocalTurno,
-    })
 
     return (
       matchDateRange &&
@@ -111,50 +95,6 @@ export function TreinadosTab({ filters }: TreinadosTabProps) {
       matchLocalTurno
     )
   })
-
-  // Simular importação de planilha
-  const handleImportPlanilha = () => {
-    // Em uma implementação real, isso abriria um file picker
-    const novosTreinados = [
-      {
-        id: operadoresTreinados.length + 1,
-        nome: "Importado da Planilha",
-        assunto: "Treinamento Inicial",
-        dataConlusao: "2024-01-16",
-        carteira: "CAIXA",
-        turno: "Manhã",
-      },
-    ]
-    setFiltroData("")
-    setFiltroTurno("Todos os turnos")
-    setFiltroCarteira("Todas as carteiras")
-    setFiltroNome("")
-    setFiltroAssunto("")
-    setFiltrosAplicados({
-      data: "",
-      turno: "Todos os turnos",
-      carteira: "Todas as carteiras",
-      nome: "",
-      assunto: "",
-    })
-    alert("Planilha importada com sucesso!")
-  }
-
-  // Simular download de planilha
-  const handleDownloadPlanilha = () => {
-    // Em uma implementação real, isso geraria e baixaria um arquivo Excel
-    const csvContent =
-      "Nome,Assunto,Data Conclusão,Carteira,Turno\n" +
-      treinadosFiltrados.map((t) => `${t.nome},${t.assunto},${t.dataConlusao},${t.carteira},${t.turno}`).join("\n")
-
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "operadores-treinados.csv"
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
 
   const handleConfirmarFiltro = () => {
     setFiltrosAplicados({
@@ -429,82 +369,6 @@ export function TreinadosTab({ filters }: TreinadosTabProps) {
           </Card>
         </div>
       )}
-
-      {/* Filtros e Ações */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5" />
-            Operadores Treinados
-          </CardTitle>
-          <CardDescription>Lista completa de operadores com treinamento concluído</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex flex-col justify-end gap-2">
-              {isAdmin && (
-                <Button onClick={handleImportPlanilha} className="gap-2">
-                  <Upload className="h-4 w-4" />
-                  Importar Planilha
-                </Button>
-              )}
-              <Button variant="outline" onClick={handleDownloadPlanilha} className="gap-2 bg-transparent">
-                <Download className="h-4 w-4" />
-                Baixar Planilha
-              </Button>
-            </div>
-          </div>
-
-          {/* Tabela de Operadores Treinados */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Assunto</TableHead>
-                  <TableHead>Data Conclusão</TableHead>
-                  <TableHead>Carteira</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {treinadosFiltrados.length > 0 ? (
-                  treinadosFiltrados.map((treinado) => (
-                    <TableRow key={treinado.id}>
-                      <TableCell className="font-medium">{treinado.nome}</TableCell>
-                      <TableCell>{treinado.assunto}</TableCell>
-                      <TableCell>{new Date(treinado.dataConlusao).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{treinado.carteira}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="default"
-                          className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                        >
-                          Concluído
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Nenhum operador encontrado com os filtros aplicados
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {treinadosFiltrados.length > 0 && (
-            <div className="mt-4 text-sm text-muted-foreground">
-              Mostrando {treinadosFiltrados.length} de {totalTreinados} operadores treinados
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   )
 }
