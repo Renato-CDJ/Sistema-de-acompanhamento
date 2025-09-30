@@ -69,6 +69,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
     responsavel: "",
     status: "Pendente" as "Aplicado" | "Pendente",
     assunto: "",
+    cargaHoraria: "",
   })
 
   const pieDataStatus = [
@@ -94,21 +95,12 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
 
     const matchStatus = !filters.status || filters.status === "Todos os status" || treinamento.status === filters.status
 
-    console.log("[v0] Filtrando treinamentos:", {
-      treinamento: treinamento,
-      filters: filters,
-      matchDateRange,
-      matchTurno,
-      matchCarteira,
-      matchStatus,
-    })
-
     return matchDateRange && matchTurno && matchCarteira && matchStatus
   })
 
   const handleAddCarteira = () => {
     if (novaCarteira.trim()) {
-      addCarteira({ name: novaCarteira })
+      addCarteira(novaCarteira)
       setNovaCarteira("")
       toast({
         title: "Sucesso!",
@@ -124,8 +116,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
 
   const handleUpdateCarteira = () => {
     if (editingCarteira && editingCarteira.name.trim()) {
-      const { index, ...carteiraData } = editingCarteira
-      updateCarteira(index, carteiraData)
+      updateCarteira(editingCarteira.id, editingCarteira.name)
       setEditingCarteira(null)
       toast({
         title: "Sucesso!",
@@ -135,8 +126,8 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
     }
   }
 
-  const handleDeleteCarteira = (index: number) => {
-    deleteCarteira(index)
+  const handleDeleteCarteira = (id: string) => {
+    deleteCarteira(id)
     toast({
       title: "Sucesso!",
       description: "Carteira removida com sucesso.",
@@ -159,6 +150,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
         responsavel: "",
         status: "Pendente",
         assunto: "",
+        cargaHoraria: "",
       })
 
       toast({
@@ -249,44 +241,12 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
       {/* Estatísticas por Carteira */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Estatísticas por Carteira
-              </CardTitle>
-              <CardDescription>Desempenho de treinamentos por carteira</CardDescription>
-            </div>
-            {isAdmin && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Carteira
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Adicionar Nova Carteira</DialogTitle>
-                    <DialogDescription>Adicione uma nova carteira para capacitação</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="nova-carteira">Nome da Carteira</Label>
-                      <Input
-                        id="nova-carteira"
-                        value={novaCarteira}
-                        onChange={(e) => setNovaCarteira(e.target.value)}
-                        placeholder="Nome da carteira"
-                      />
-                    </div>
-                    <Button onClick={handleAddCarteira} className="w-full">
-                      Adicionar
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Estatísticas por Carteira
+            </CardTitle>
+            <CardDescription>Desempenho de treinamentos por carteira</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
@@ -294,7 +254,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
             <div className="text-center py-8 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhuma carteira cadastrada ainda.</p>
-              {isAdmin && <p className="text-sm">Use o botão "Adicionar Carteira" para começar.</p>}
+              {isAdmin && <p className="text-sm">Use o botão "Adicionar Carteira" na seção de gerenciamento.</p>}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -314,7 +274,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                             <Button variant="ghost" size="sm" onClick={() => handleEditCarteira(index)}>
                               Editar
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDeleteCarteira(index)}>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteCarteira(carteira.id)}>
                               Excluir
                             </Button>
                           </div>
@@ -563,7 +523,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
               <div>
                 <Label htmlFor="responsavel">Responsável</Label>
                 <Input
@@ -606,6 +566,17 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label htmlFor="cargaHoraria">Carga Horária</Label>
+                <Input
+                  id="cargaHoraria"
+                  type="time"
+                  step="1"
+                  value={novoTreinamento.cargaHoraria}
+                  onChange={(e) => setNovoTreinamento({ ...novoTreinamento, cargaHoraria: e.target.value })}
+                  placeholder="00:00:00"
+                />
+              </div>
             </div>
             <div className="flex gap-2">
               <Button onClick={handleAddTreinamento} className="flex-1">
@@ -640,6 +611,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                   <TableHead>Responsável</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Assunto</TableHead>
+                  <TableHead>Carga Horária</TableHead>
                   {isAdmin && <TableHead>Ações</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -657,6 +629,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                       </Badge>
                     </TableCell>
                     <TableCell>{treinamento.assunto}</TableCell>
+                    <TableCell>{treinamento.cargaHoraria || "-"}</TableCell>
                     {isAdmin && (
                       <TableCell>
                         <Button variant="ghost" size="sm" onClick={() => handleEditTreinamento(treinamento)}>

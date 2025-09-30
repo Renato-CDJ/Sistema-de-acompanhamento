@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   PieChart,
   Pie,
@@ -32,6 +33,21 @@ interface OverviewTabProps {
   }
 }
 
+const MONTHS = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+]
+
 export function OverviewTab({ filters }: OverviewTabProps) {
   const [showCharts, setShowCharts] = useState(true)
   const [visibleStats, setVisibleStats] = useState({
@@ -46,11 +62,15 @@ export function OverviewTab({ filters }: OverviewTabProps) {
     inss: true,
   })
   const [showStatsConfig, setShowStatsConfig] = useState(false)
+  const [monitoringFilterMonth, setMonitoringFilterMonth] = useState<string>("current")
+  const [tiaFilterMonth, setTiaFilterMonth] = useState<string>("current")
 
   const {
     getCapacitacaoStats,
     getDesligamentosStats,
     getTreinadosStats,
+    getMonitoringStats,
+    getTIAStats,
     dadosDiarios,
     estatisticasCarteiras,
     carteiras,
@@ -194,21 +214,35 @@ export function OverviewTab({ filters }: OverviewTabProps) {
     { name: "INSS", value: totalINSS, color: "#8b5cf6", visible: visibleStats.inss },
   ].filter((item) => item.value > 0 && item.visible)
 
-  const barData = filteredDadosDiarios
-    .slice(-7) // Show last 7 entries instead of 5 for better visualization
-    .map((dados) => {
-      const date = new Date(dados.date)
-      return {
-        month: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
-        funcionarios: dados.total,
-        treinamentos: filteredCapacitacaoStats.aplicados,
-        desligamentos: filteredDesligamentosStats.totalDesligamentos,
-      }
-    })
+  const barData = filteredDadosDiarios.slice(-7).map((dados) => {
+    const date = new Date(dados.date)
+    return {
+      month: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+      funcionarios: dados.total,
+      treinamentos: filteredCapacitacaoStats.aplicados,
+      desligamentos: filteredDesligamentosStats.totalDesligamentos,
+    }
+  })
 
   const handleStatsToggle = (key: string, value: boolean) => {
     setVisibleStats((prev) => ({ ...prev, [key]: value }))
   }
+
+  const currentMonth = new Date().getMonth()
+  const currentYear = new Date().getFullYear()
+  const monitoringStats =
+    monitoringFilterMonth === "all"
+      ? getMonitoringStats()
+      : monitoringFilterMonth === "current"
+        ? getMonitoringStats(currentYear, currentMonth)
+        : getMonitoringStats(currentYear, Number.parseInt(monitoringFilterMonth))
+
+  const tiaStats =
+    tiaFilterMonth === "all"
+      ? getTIAStats()
+      : tiaFilterMonth === "current"
+        ? getTIAStats(currentYear, currentMonth)
+        : getTIAStats(currentYear, Number.parseInt(tiaFilterMonth))
 
   return (
     <div className="space-y-6">
@@ -311,7 +345,6 @@ export function OverviewTab({ filters }: OverviewTabProps) {
         </Card>
       )}
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsData.map((stat, index) => {
           const Icon = stat.icon
@@ -332,6 +365,120 @@ export function OverviewTab({ filters }: OverviewTabProps) {
           )
         })}
       </div>
+
+      {monitoringStats.total > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle>Consolidado Mensal - Monitorias</CardTitle>
+                <CardDescription>
+                  {monitoringFilterMonth === "all"
+                    ? "Resumo de todas as monitorias"
+                    : monitoringFilterMonth === "current"
+                      ? `Resumo de ${MONTHS[currentMonth]} ${currentYear}`
+                      : `Resumo de ${MONTHS[Number.parseInt(monitoringFilterMonth)]} ${currentYear}`}
+                </CardDescription>
+              </div>
+              <div className="w-full sm:w-48">
+                <Select value={monitoringFilterMonth} onValueChange={setMonitoringFilterMonth}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="current">Mês Atual</SelectItem>
+                    <SelectItem value="all">Todos os Meses</SelectItem>
+                    {MONTHS.map((month, index) => (
+                      <SelectItem key={index} value={index.toString()}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-sm text-muted-foreground mb-1">Total Conforme</p>
+                <p className="text-2xl font-bold text-green-600">{monitoringStats.conforme}</p>
+              </div>
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <p className="text-sm text-muted-foreground mb-1">Total Inconforme</p>
+                <p className="text-2xl font-bold text-red-600">{monitoringStats.inconforme}</p>
+              </div>
+              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <p className="text-sm text-muted-foreground mb-1">Total Geral</p>
+                <p className="text-2xl font-bold text-primary">{monitoringStats.total}</p>
+              </div>
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-muted-foreground mb-1">Média de Conformidade</p>
+                <p className="text-2xl font-bold text-blue-600">{monitoringStats.mediaConforme}%</p>
+              </div>
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                <p className="text-sm text-muted-foreground mb-1">Média de Inconformidade</p>
+                <p className="text-2xl font-bold text-orange-600">{monitoringStats.mediaInconforme}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {tiaStats.totalEntries > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle>Consolidado - Apuração TIA</CardTitle>
+                <CardDescription>
+                  {tiaFilterMonth === "all"
+                    ? "Resumo de todas as apurações TIA"
+                    : tiaFilterMonth === "current"
+                      ? `Resumo de ${MONTHS[currentMonth]} ${currentYear}`
+                      : `Resumo de ${MONTHS[Number.parseInt(tiaFilterMonth)]} ${currentYear}`}
+                </CardDescription>
+              </div>
+              <div className="w-full sm:w-48">
+                <Select value={tiaFilterMonth} onValueChange={setTiaFilterMonth}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="current">Mês Atual</SelectItem>
+                    <SelectItem value="all">Todos os Meses</SelectItem>
+                    {MONTHS.map((month, index) => (
+                      <SelectItem key={index} value={index.toString()}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                <p className="text-sm text-muted-foreground mb-1">Total de Registros</p>
+                <p className="text-2xl font-bold text-purple-600">{tiaStats.totalEntries}</p>
+              </div>
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <p className="text-sm text-muted-foreground mb-1">Total Analisados (Inconformes)</p>
+                <p className="text-2xl font-bold text-red-600">{tiaStats.totalAnalisados}</p>
+              </div>
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-muted-foreground mb-1">Total Quantidade</p>
+                <p className="text-2xl font-bold text-blue-600">{tiaStats.totalQuantidade}</p>
+              </div>
+              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-muted-foreground mb-1">Média Percentual</p>
+                <p className="text-2xl font-bold text-amber-600">{tiaStats.mediaPercent}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {visibleStats.ativos && (
@@ -386,10 +533,8 @@ export function OverviewTab({ filters }: OverviewTabProps) {
         )}
       </div>
 
-      {/* Charts */}
       {showCharts && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Pie Chart - só mostra se há dados */}
           {pieData.length > 0 && (
             <Card>
               <CardHeader>
@@ -420,7 +565,6 @@ export function OverviewTab({ filters }: OverviewTabProps) {
             </Card>
           )}
 
-          {/* Bar Chart - só mostra se há dados */}
           {barData.length > 0 && (
             <Card>
               <CardHeader>
@@ -446,7 +590,6 @@ export function OverviewTab({ filters }: OverviewTabProps) {
         </div>
       )}
 
-      {/* Additional Stats - só mostra se há dados */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {carteiras.length > 0 && (
           <Card>

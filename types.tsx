@@ -17,6 +17,7 @@ export interface Treinamento {
   responsavel: string
   status: "Aplicado" | "Pendente"
   assunto: string
+  cargaHoraria: string
 }
 
 export interface Desligamento {

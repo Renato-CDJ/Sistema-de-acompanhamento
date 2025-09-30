@@ -43,21 +43,22 @@
 .dark {
   /* Dark theme with professional dark colors */
   --background: oklch(0.08 0 0);
-  --foreground: oklch(0.95 0 0);
+  /* Reduced text brightness from 0.95 to 0.88 for less eye strain */
+  --foreground: oklch(0.88 0 0);
   --card: oklch(0.12 0 0);
-  --card-foreground: oklch(0.95 0 0);
+  --card-foreground: oklch(0.88 0 0);
   --popover: oklch(0.12 0 0);
-  --popover-foreground: oklch(0.95 0 0);
+  --popover-foreground: oklch(0.88 0 0);
   --primary: oklch(0.7 0.18 45); /* Brighter orange for dark mode */
   --primary-foreground: oklch(0.08 0 0);
   --secondary: oklch(0.18 0 0);
-  --secondary-foreground: oklch(0.95 0 0);
+  --secondary-foreground: oklch(0.88 0 0);
   --muted: oklch(0.18 0 0);
   --muted-foreground: oklch(0.65 0 0);
   --accent: oklch(0.2 0.05 45);
-  --accent-foreground: oklch(0.95 0 0);
+  --accent-foreground: oklch(0.88 0 0);
   --destructive: oklch(0.6 0.25 25);
-  --destructive-foreground: oklch(0.95 0 0);
+  --destructive-foreground: oklch(0.88 0 0);
   --border: oklch(0.18 0 0);
   --input: oklch(0.18 0 0);
   --ring: oklch(0.7 0.18 45);
@@ -67,11 +68,11 @@
   --chart-4: oklch(0.6 0.2 35);
   --chart-5: oklch(0.8 0.1 55);
   --sidebar: oklch(0.12 0 0);
-  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-foreground: oklch(0.88 0 0);
   --sidebar-primary: oklch(0.7 0.18 45);
   --sidebar-primary-foreground: oklch(0.08 0 0);
   --sidebar-accent: oklch(0.18 0 0);
-  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-accent-foreground: oklch(0.88 0 0);
   --sidebar-border: oklch(0.18 0 0);
   --sidebar-ring: oklch(0.7 0.18 45);
 }
@@ -181,5 +182,47 @@
   /* Override any opacity issues on icons */
   .dark svg[data-lucide].opacity-50 {
     opacity: 0.7 !important;
+  }
+
+  /* Enhanced date input calendar icon fix for dark mode with stronger specificity */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: brightness(0) invert(1) !important;
+    cursor: pointer;
+    opacity: 1 !important;
+  }
+
+  .dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    filter: brightness(0) invert(1) opacity(0.8) !important;
+  }
+
+  /* For Firefox - calendar picker indicator */
+  .dark input[type="date"]::-moz-calendar-picker-indicator {
+    filter: brightness(0) invert(1) !important;
+    cursor: pointer;
+    opacity: 1 !important;
+  }
+
+  /* For Firefox */
+  .dark input[type="date"] {
+    color-scheme: dark;
+  }
+
+  /* Ensure the date input text is visible */
+  .dark input[type="date"]::-webkit-datetime-edit {
+    color: hsl(var(--foreground));
+  }
+
+  .dark input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+    color: hsl(var(--foreground));
+  }
+
+  .dark input[type="date"]::-webkit-datetime-edit-text {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .dark input[type="date"]::-webkit-datetime-edit-month-field,
+  .dark input[type="date"]::-webkit-datetime-edit-day-field,
+  .dark input[type="date"]::-webkit-datetime-edit-year-field {
+    color: hsl(var(--foreground));
   }
 }

@@ -11,6 +11,8 @@ import { TreinadosTab } from "@/components/tabs/treinados-tab"
 import { DesligamentosTab } from "@/components/tabs/desligamentos-tab"
 import { CarteirasTab } from "@/components/tabs/carteiras-tab"
 import { OperadoresTab } from "@/components/tabs/operadores-tab"
+import { RelatorioMonitoriasTab } from "@/components/tabs/relatorio-monitorias-tab"
+import { ApuracaoTIATab } from "@/components/tabs/apuracao-tia-tab"
 
 interface Filters {
   dateRange?: { start: string; end: string }
@@ -60,6 +62,10 @@ export default function HomePage() {
         return <CarteirasTab filters={appliedFilters} />
       case "operadores":
         return <OperadoresTab filters={appliedFilters} />
+      case "relatorio-monitorias":
+        return <RelatorioMonitoriasTab />
+      case "apuracao-tia":
+        return <ApuracaoTIATab />
       default:
         return <OverviewTab filters={appliedFilters} />
     }

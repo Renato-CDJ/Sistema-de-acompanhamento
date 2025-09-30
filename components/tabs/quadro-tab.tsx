@@ -32,6 +32,8 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     deleteDadosDiarios,
     estatisticasCarteiras,
     addEstatisticasCarteira,
+    updateEstatisticasCarteira,
+    deleteEstatisticasCarteira,
     carteiras,
     addCarteira,
     updateCarteira,
@@ -58,6 +60,8 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     turno: "geral",
   })
 
+  const [editingDailyData, setEditingDailyData] = useState<number | null>(null)
+
   const [carteiraStatsData, setCarteiraStatsData] = useState({
     date: "",
     carteira: "",
@@ -67,44 +71,31 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     turno: "geral",
   })
 
+  const [editingCarteiraStats, setEditingCarteiraStats] = useState<number | null>(null)
+
   const filteredDadosDiarios = dadosDiarios.filter((dados) => {
-    // Filtro por seção baseado na opção selecionada
     let matchesSecao = true
     const currentSecao = selectedOption === "caixa" ? "Caixa" : "Cobrança"
     if (filters?.secao && filters.secao !== "Todas as seções") {
       matchesSecao = dados.secao.toLowerCase() === filters.secao.toLowerCase()
     } else {
-      // Se não há filtro específico, mostrar dados da seção atual
       matchesSecao = dados.secao === currentSecao
     }
 
-    // Filtro por turno
     let matchesTurno = true
     if (filters?.turno && filters.turno !== "Todos os turnos") {
       matchesTurno = dados.turno.toLowerCase() === filters.turno.toLowerCase()
     }
 
-    // Filtro por data início
     let matchesDataInicio = true
     if (filters?.dateRange?.start) {
       matchesDataInicio = dados.date >= filters.dateRange.start
     }
 
-    // Filtro por data fim
     let matchesDataFim = true
     if (filters?.dateRange?.end) {
       matchesDataFim = dados.date <= filters.dateRange.end
     }
-
-    console.log("[v0] Filtrando dados:", {
-      dados: dados,
-      filters: filters,
-      currentSecao,
-      matchesSecao,
-      matchesTurno,
-      matchesDataInicio,
-      matchesDataFim,
-    })
 
     return matchesSecao && matchesTurno && matchesDataInicio && matchesDataFim
   })
@@ -138,11 +129,10 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       return
     }
 
-    addCarteira({ name: newCarteira })
+    addCarteira(newCarteira)
     setNewCarteira("")
     setIsCarteiraDialogOpen(false)
     alert("Carteira adicionada com sucesso!")
-    console.log("[v0] Carteira adicionada via QuadroTab:", newCarteira)
   }
 
   const handleEditCarteira = (carteira) => {
@@ -157,26 +147,20 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       return
     }
 
-    const carteiraIndex = carteiras.findIndex((c) => c.name === editingCarteira.name)
-    if (carteiraIndex !== -1) {
-      updateCarteira(carteiraIndex, { ...editingCarteira, name: newCarteira })
+    if (editingCarteira) {
+      updateCarteira(editingCarteira.id, newCarteira)
     }
 
     setEditingCarteira(null)
     setNewCarteira("")
     setIsCarteiraDialogOpen(false)
     alert("Carteira atualizada com sucesso!")
-    console.log("[v0] Carteira atualizada via QuadroTab:", newCarteira)
   }
 
-  const handleDeleteCarteira = (carteiraName) => {
+  const handleDeleteCarteira = (carteiraId) => {
     if (confirm("Tem certeza que deseja excluir esta carteira?")) {
-      const carteiraIndex = carteiras.findIndex((c) => c.name === carteiraName)
-      if (carteiraIndex !== -1) {
-        deleteCarteira(carteiraIndex)
-      }
+      deleteCarteira(carteiraId)
       alert("Carteira excluída com sucesso!")
-      console.log("[v0] Carteira excluída via QuadroTab:", carteiraName)
     }
   }
 
@@ -207,20 +191,122 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     setCarteiraStatsData(newData)
   }
 
+  const handleSaveCarteiraStats = () => {
+    if (!carteiraStatsData.date) {
+      alert("Por favor, selecione uma data")
+      return
+    }
+
+    if (!carteiraStatsData.carteira) {
+      alert("Por favor, selecione uma carteira")
+      return
+    }
+
+    if (editingCarteiraStats !== null) {
+      updateEstatisticasCarteira(editingCarteiraStats, {
+        date: carteiraStatsData.date,
+        carteira: carteiraStatsData.carteira,
+        total: carteiraStatsData.total,
+        presentes: carteiraStatsData.presentes,
+        faltas: carteiraStatsData.faltas,
+        turno: carteiraStatsData.turno,
+      })
+      alert("Estatísticas por carteira atualizadas com sucesso!")
+      setEditingCarteiraStats(null)
+    } else {
+      const newStat = {
+        date: carteiraStatsData.date,
+        carteira: carteiraStatsData.carteira,
+        total: carteiraStatsData.total,
+        presentes: carteiraStatsData.presentes,
+        faltas: carteiraStatsData.faltas,
+        turno: carteiraStatsData.turno,
+      }
+
+      addEstatisticasCarteira(newStat)
+      alert("Estatísticas por carteira salvas com sucesso!")
+    }
+
+    setCarteiraStatsData({
+      date: "",
+      carteira: "",
+      total: 0,
+      presentes: 0,
+      faltas: 0,
+      turno: "geral",
+    })
+  }
+
+  const handleEditCarteiraStats = (stat: any) => {
+    setEditingCarteiraStats(stat.id)
+    setCarteiraStatsData({
+      date: stat.date,
+      carteira: stat.carteira,
+      total: stat.total,
+      presentes: stat.presentes,
+      faltas: stat.faltas,
+      turno: stat.turno,
+    })
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleDeleteCarteiraStats = (id: number) => {
+    if (confirm("Tem certeza que deseja excluir esta estatística?")) {
+      deleteEstatisticasCarteira(id)
+      alert("Estatística excluída com sucesso!")
+    }
+  }
+
+  const handleCancelEditCarteiraStats = () => {
+    setEditingCarteiraStats(null)
+    setCarteiraStatsData({
+      date: "",
+      carteira: "",
+      total: 0,
+      presentes: 0,
+      faltas: 0,
+      turno: "geral",
+    })
+  }
+
+  const handleEditDadosDiarios = (record: any) => {
+    setEditingDailyData(record.id)
+    setDailyData({
+      date: record.date,
+      total: record.total,
+      ativos: record.ativos,
+      ferias: record.ferias,
+      afastamento: record.afastamento,
+      desaparecidos: record.desaparecidos,
+      inss: record.inss,
+      turno: record.turno,
+    })
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleDeleteDadosDiarios = (id: number) => {
+    if (confirm("Tem certeza que deseja excluir este registro?")) {
+      deleteDadosDiarios(id)
+      alert("Registro excluído com sucesso!")
+    }
+  }
+
   const handleSaveDailyData = () => {
     if (!dailyData.date) {
       alert("Por favor, selecione uma data")
       return
     }
 
-    const dadosParaSalvar = {
-      ...dailyData,
-      secao: selectedOption === "caixa" ? "Caixa" : "Cobrança",
-    }
+    const secao = selectedOption === "caixa" ? "Caixa" : "Cobrança"
 
-    console.log("[v0] Salvando dados diários:", dadosParaSalvar)
-    addDadosDiarios(dadosParaSalvar)
-    alert("Dados salvos com sucesso!")
+    if (editingDailyData !== null) {
+      updateDadosDiarios(editingDailyData, { ...dailyData, secao })
+      alert("Dados diários atualizados com sucesso!")
+      setEditingDailyData(null)
+    } else {
+      addDadosDiarios({ ...dailyData, secao })
+      alert("Dados diários salvos com sucesso!")
+    }
 
     setDailyData({
       date: "",
@@ -234,38 +320,16 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     })
   }
 
-  const handleSaveCarteiraStats = () => {
-    if (!carteiraStatsData.date) {
-      alert("Por favor, selecione uma data")
-      return
-    }
-
-    if (!carteiraStatsData.carteira) {
-      alert("Por favor, selecione uma carteira")
-      return
-    }
-
-    const selectedCarteiraName = carteiras.find((c) => c.name === carteiraStatsData.carteira)?.name
-
-    const newStat = {
-      date: carteiraStatsData.date,
-      carteira: selectedCarteiraName,
-      total: carteiraStatsData.total,
-      presentes: carteiraStatsData.presentes,
-      faltas: carteiraStatsData.faltas,
-      turno: carteiraStatsData.turno,
-    }
-
-    addEstatisticasCarteira(newStat)
-
-    alert("Estatísticas por carteira salvas com sucesso!")
-
-    setCarteiraStatsData({
+  const handleCancelEditDailyData = () => {
+    setEditingDailyData(null)
+    setDailyData({
       date: "",
-      carteira: "",
       total: 0,
-      presentes: 0,
-      faltas: 0,
+      ativos: 0,
+      ferias: 0,
+      afastamento: 0,
+      desaparecidos: 0,
+      inss: 0,
       turno: "geral",
     })
   }
@@ -286,37 +350,13 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       matchesCarteira = stat.carteira === filters.carteira
     }
 
-    return matchesDataInicio && matchesDataFim && matchesCarteira
-  })
-
-  const handleEditDadosDiarios = (record: any) => {
-    setDailyData({
-      date: record.date,
-      total: record.total,
-      ativos: record.ativos,
-      ferias: record.ferias,
-      afastamento: record.afastamento,
-      desaparecidos: record.desaparecidos,
-      inss: record.inss,
-      turno: record.turno,
-    })
-  }
-
-  const handleDeleteDadosDiarios = (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este registro?")) {
-      deleteDadosDiarios(id)
-      alert("Registro excluído com sucesso!")
+    let matchesTurno = true
+    if (filters?.turno && filters.turno !== "Todos os turnos") {
+      matchesTurno = stat.turno.toLowerCase() === filters.turno.toLowerCase()
     }
-  }
 
-  // Removed useEffect for initial carteiras as they are now predefined
-  // useEffect(() => {
-  //   // Simulação de carregamento de carteiras
-  //   setCarteiras([
-  //     { id: 1, name: "Carteira 1", total: 0, presentes: 0, faltas: 0, abs: "0%" },
-  //     { id: 2, name: "Carteira 2", total: 0, presentes: 0, faltas: 0, abs: "0%" },
-  //   ])
-  // }, [])
+    return matchesDataInicio && matchesDataFim && matchesCarteira && matchesTurno
+  })
 
   return (
     <div className="space-y-6">
@@ -361,7 +401,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
         </Button>
       </div>
 
-      {/* Statistics Cards - Same for both sections */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -430,57 +469,45 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                 <CardTitle>Detalhes das Carteiras</CardTitle>
                 <CardDescription>
                   {filters?.dateRange?.start || filters?.dateRange?.end
-                    ? `Estatísticas filtradas por período: ${new Date(filters.dateRange.start).toLocaleDateString("pt-BR")} até ${new Date(filters.dateRange.end).toLocaleDateString("pt-BR")}`
+                    ? `Estatísticas filtradas por período: ${filters.dateRange.start ? new Date(filters.dateRange.start).toLocaleDateString("pt-BR") : "início"} até ${filters.dateRange.end ? new Date(filters.dateRange.end).toLocaleDateString("pt-BR") : "fim"}`
                     : "Estatísticas gerais das carteiras"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {carteiras.length === 0 && filteredCarteiraStats.length === 0 ? (
+                {filteredCarteiraStats.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p>Nenhuma carteira cadastrada.</p>
-                    <p className="text-sm">Acesse a aba "Carteiras" para gerenciar as carteiras.</p>
+                    <p>Nenhuma estatística de carteira encontrada.</p>
+                    <p className="text-sm">
+                      Use o formulário "Adicionar Estatísticas por Carteira" para adicionar dados.
+                    </p>
                   </div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Carteira</TableHead>
+                        <TableHead>Data</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead>Presentes</TableHead>
                         <TableHead>Faltas</TableHead>
                         <TableHead>ABS</TableHead>
                         <TableHead>Turno</TableHead>
-                        {filters?.dateRange?.start || (filters?.dateRange?.end && <TableHead>Data</TableHead>)}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filters?.dateRange?.start || filters?.dateRange?.end
-                        ? filteredCarteiraStats.map((stat) => (
-                            <TableRow key={stat.id}>
-                              <TableCell className="font-medium">{stat.carteira}</TableCell>
-                              <TableCell>{stat.total}</TableCell>
-                              <TableCell className="text-green-600">{stat.presentes}</TableCell>
-                              <TableCell className="text-red-600">{stat.faltas}</TableCell>
-                              <TableCell>
-                                {stat.total > 0 ? ((stat.faltas / stat.total) * 100).toFixed(1) + "%" : "0%"}
-                              </TableCell>
-                              <TableCell>{stat.turno}</TableCell>
-                              {filters?.dateRange?.start ||
-                                (filters?.dateRange?.end && (
-                                  <TableCell>{new Date(stat.date).toLocaleDateString("pt-BR")}</TableCell>
-                                ))}
-                            </TableRow>
-                          ))
-                        : carteiras.map((carteira) => (
-                            <TableRow key={carteira.name}>
-                              <TableCell className="font-medium">{carteira.name}</TableCell>
-                              <TableCell>{carteira.total}</TableCell>
-                              <TableCell className="text-green-600">{carteira.aplicados}</TableCell>
-                              <TableCell className="text-red-600">{carteira.pendentes}</TableCell>
-                              <TableCell>{carteira.taxa.toFixed(1)}%</TableCell>
-                              <TableCell>-</TableCell>
-                            </TableRow>
-                          ))}
+                      {filteredCarteiraStats.map((stat) => (
+                        <TableRow key={stat.id}>
+                          <TableCell className="font-medium">{stat.carteira}</TableCell>
+                          <TableCell>{new Date(stat.date).toLocaleDateString("pt-BR")}</TableCell>
+                          <TableCell>{stat.total}</TableCell>
+                          <TableCell className="text-green-600">{stat.presentes}</TableCell>
+                          <TableCell className="text-red-600">{stat.faltas}</TableCell>
+                          <TableCell>
+                            {stat.total > 0 ? ((stat.faltas / stat.total) * 100).toFixed(1) + "%" : "0%"}
+                          </TableCell>
+                          <TableCell>{stat.turno}</TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 )}
@@ -493,9 +520,15 @@ export function QuadroTab({ filters }: QuadroTabProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
-                  Adicionar Estatísticas por Carteira
+                  {editingCarteiraStats !== null
+                    ? "Editar Estatísticas por Carteira"
+                    : "Adicionar Estatísticas por Carteira"}
                 </CardTitle>
-                <CardDescription>Registre as estatísticas específicas de cada carteira</CardDescription>
+                <CardDescription>
+                  {editingCarteiraStats !== null
+                    ? "Atualize as estatísticas específicas de cada carteira"
+                    : "Registre as estatísticas específicas de cada carteira"}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -521,11 +554,11 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                         <SelectContent>
                           {carteiras.length === 0 ? (
                             <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                              Nenhuma carteira cadastrada. Acesse a aba "Carteiras" para adicionar.
+                              Nenhuma carteira cadastrada. Acesse a aba "Capacitação" para adicionar.
                             </div>
                           ) : (
                             carteiras.map((carteira) => (
-                              <SelectItem key={carteira.name} value={carteira.name}>
+                              <SelectItem key={carteira.id} value={carteira.name}>
                                 {carteira.name}
                               </SelectItem>
                             ))
@@ -585,9 +618,18 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                         onChange={(e) => handleCarteiraStatsChange("faltas", Number(e.target.value))}
                       />
                     </div>
-                    <div className="flex items-end">
-                      <Button className="w-full" onClick={handleSaveCarteiraStats}>
-                        Salvar Estatísticas
+                    <div className="flex items-end gap-2">
+                      {editingCarteiraStats !== null && (
+                        <Button
+                          variant="outline"
+                          className="flex-1 bg-transparent"
+                          onClick={handleCancelEditCarteiraStats}
+                        >
+                          Cancelar
+                        </Button>
+                      )}
+                      <Button className="flex-1" onClick={handleSaveCarteiraStats}>
+                        {editingCarteiraStats !== null ? "Atualizar" : "Salvar"}
                       </Button>
                     </div>
                   </div>
@@ -598,7 +640,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
         </div>
       )}
 
-      {/* Charts Section */}
       {showCharts && pieData.length > 0 && (
         <Card>
           <CardHeader>
@@ -629,16 +670,17 @@ export function QuadroTab({ filters }: QuadroTabProps) {
         </Card>
       )}
 
-      {/* Daily Data Entry Section */}
       {isAdmin && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Adicionar Dados Diários
+              {editingDailyData !== null ? "Editar Dados Diários" : "Adicionar Dados Diários"}
             </CardTitle>
             <CardDescription>
-              Registre os números diários para {selectedOption === "caixa" ? "Caixa" : "Cobrança"}
+              {editingDailyData !== null
+                ? `Atualize os números diários para ${selectedOption === "caixa" ? "Caixa" : "Cobrança"}`
+                : `Registre os números diários para ${selectedOption === "caixa" ? "Caixa" : "Cobrança"}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -732,9 +774,14 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                     onChange={(e) => handleDailyDataChange("inss", Number(e.target.value))}
                   />
                 </div>
-                <div className="flex items-end">
-                  <Button className="w-full" onClick={handleSaveDailyData}>
-                    Salvar
+                <div className="flex items-end gap-2">
+                  {editingDailyData !== null && (
+                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleCancelEditDailyData}>
+                      Cancelar
+                    </Button>
+                  )}
+                  <Button className="flex-1" onClick={handleSaveDailyData}>
+                    {editingDailyData !== null ? "Atualizar" : "Salvar"}
                   </Button>
                 </div>
               </div>
@@ -743,10 +790,9 @@ export function QuadroTab({ filters }: QuadroTabProps) {
         </Card>
       )}
 
-      {/* Historical Data Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Dados</CardTitle>
+          <CardTitle>Histórico de Dados - Dados Diários</CardTitle>
           <CardDescription>
             {filters?.secao && filters.secao !== "Todas as seções" && `Seção: ${filters.secao} `}
             {filters?.turno && filters.turno !== "Todos os turnos" && `- Turno: ${filters.turno} `}
@@ -816,6 +862,79 @@ export function QuadroTab({ filters }: QuadroTabProps) {
           )}
         </CardContent>
       </Card>
+
+      {selectedOption === "cobranca" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Histórico de Dados - Estatísticas por Carteira</CardTitle>
+            <CardDescription>
+              {filters?.carteira && filters.carteira !== "Todas as carteiras" && `Carteira: ${filters.carteira} `}
+              {filters?.turno && filters.turno !== "Todos os turnos" && `- Turno: ${filters.turno} `}
+              {filters?.dateRange?.start && `- De: ${new Date(filters.dateRange.start).toLocaleDateString("pt-BR")} `}
+              {filters?.dateRange?.end && `até: ${new Date(filters.dateRange.end).toLocaleDateString("pt-BR")}`}
+              {(!filters?.carteira || filters.carteira === "Todas as carteiras") &&
+                (!filters?.turno || filters.turno === "Todos os turnos") &&
+                !filters?.dateRange?.start &&
+                !filters?.dateRange?.end &&
+                "Todas as estatísticas de carteiras"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {filteredCarteiraStats.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Nenhuma estatística de carteira encontrada.</p>
+                <p className="text-sm">
+                  {estatisticasCarteiras.length === 0
+                    ? "Use o formulário 'Adicionar Estatísticas por Carteira' para adicionar dados."
+                    : "Tente ajustar os filtros ou adicionar novos dados."}
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Carteira</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Presentes</TableHead>
+                    <TableHead>Faltas</TableHead>
+                    <TableHead>ABS</TableHead>
+                    <TableHead>Turno</TableHead>
+                    {isAdmin && <TableHead>Ações</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCarteiraStats.map((stat) => (
+                    <TableRow key={stat.id}>
+                      <TableCell>{new Date(stat.date).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell className="font-medium">{stat.carteira}</TableCell>
+                      <TableCell>{stat.total}</TableCell>
+                      <TableCell className="text-green-600">{stat.presentes}</TableCell>
+                      <TableCell className="text-red-600">{stat.faltas}</TableCell>
+                      <TableCell>
+                        {stat.total > 0 ? ((stat.faltas / stat.total) * 100).toFixed(1) + "%" : "0%"}
+                      </TableCell>
+                      <TableCell>{stat.turno}</TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleEditCarteiraStats(stat)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleDeleteCarteiraStats(stat.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

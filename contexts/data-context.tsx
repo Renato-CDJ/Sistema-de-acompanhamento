@@ -22,6 +22,7 @@ interface Treinamento {
   responsavel: string
   status: "Aplicado" | "Pendente"
   assunto: string
+  cargaHoraria: string
 }
 
 interface Desligamento {
@@ -69,6 +70,26 @@ interface Operador {
   turno: string
 }
 
+interface WeekData {
+  id: string
+  conforme: number
+  inconforme: number
+}
+
+interface MonthData {
+  year: number
+  month: number
+  weeks: WeekData[]
+}
+
+interface TIAEntry {
+  id: string
+  date: string
+  analisados: number
+  quantidade: number
+  totalPercent: number
+}
+
 interface DataContextType {
   // Capacitação
   carteiras: Carteira[]
@@ -76,7 +97,7 @@ interface DataContextType {
   assuntos: string[]
   addCarteira: (name: string) => void
   updateCarteira: (id: string, name: string) => void
-  removeCarteira: (id: string) => void
+  deleteCarteira: (id: string) => void
   addTreinamento: (treinamento: Omit<Treinamento, "id">) => void
   addAssunto: (assunto: string) => void
   updateAssunto: (index: number, novoAssunto: string) => void
@@ -96,6 +117,8 @@ interface DataContextType {
   updateDadosDiarios: (id: number, dados: Partial<DadosDiarios>) => void
   deleteDadosDiarios: (id: number) => void
   addEstatisticasCarteira: (stats: Omit<EstatisticasCarteira, "id">) => void
+  updateEstatisticasCarteira: (id: number, stats: Partial<EstatisticasCarteira>) => void
+  deleteEstatisticasCarteira: (id: number) => void
 
   // Operadores
   operadores: Operador[]
@@ -129,6 +152,36 @@ interface DataContextType {
       carteira: string
     }>
   }
+
+  monitoringData: MonthData[]
+  addOrUpdateMonitoringMonth: (monthData: MonthData) => void
+  deleteMonitoringWeek: (year: number, month: number, weekId: string) => void
+  updateMonitoringWeek: (year: number, month: number, weekId: string, weekData: WeekData) => void
+  getMonitoringStats: (
+    year?: number,
+    month?: number,
+  ) => {
+    conforme: number
+    inconforme: number
+    total: number
+    mediaConforme: string
+    mediaInconforme: string
+  }
+
+  // TIA data
+  tiaData: TIAEntry[]
+  addTIAEntry: (entry: Omit<TIAEntry, "id" | "totalPercent">) => void
+  updateTIAEntry: (id: string, entry: Partial<Omit<TIAEntry, "id">>) => void
+  deleteTIAEntry: (id: string) => void
+  getTIAStats: (
+    year?: number,
+    month?: number,
+  ) => {
+    totalEntries: number
+    totalAnalisados: number
+    totalQuantidade: number
+    mediaPercent: string
+  }
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -143,6 +196,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [dadosDiarios, setDadosDiarios] = useState<DadosDiarios[]>([])
   const [estatisticasCarteiras, setEstatisticasCarteiras] = useState<EstatisticasCarteira[]>([])
   const [operadores, setOperadores] = useState<Operador[]>([])
+  const [monitoringData, setMonitoringData] = useState<MonthData[]>([])
+  const [tiaData, setTiaData] = useState<TIAEntry[]>([])
 
   const addCarteira = (name: string) => {
     const carteira: Carteira = {
@@ -161,7 +216,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setCarteiras((prev) => prev.map((carteira) => (carteira.id === id ? { ...carteira, name: newName } : carteira)))
   }
 
-  const removeCarteira = (id: string) => {
+  const deleteCarteira = (id: string) => {
     setCarteiras((prev) => prev.filter((c) => c.id !== id))
   }
 
@@ -172,6 +227,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     setTreinamentos((prev) => [...prev, treinamento])
+
+    if (treinamento.status === "Aplicado" && treinamento.quantidade > 0) {
+      const novosOperadores: Omit<Operador, "id">[] = []
+      for (let i = 1; i <= treinamento.quantidade; i++) {
+        novosOperadores.push({
+          nome: `Operador ${i} - ${treinamento.assunto}`,
+          assunto: treinamento.assunto,
+          dataConlusao: treinamento.data,
+          carteira: treinamento.carteira,
+          turno: treinamento.turno,
+        })
+      }
+
+      // Add all operators at once
+      const operadoresComId = novosOperadores.map((operador, index) => ({
+        ...operador,
+        id: Date.now() + index + 1,
+      }))
+      setOperadores((prev) => [...prev, ...operadoresComId])
+    }
 
     setCarteiras((prev) =>
       prev.map((carteira) => {
@@ -248,6 +323,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setEstatisticasCarteiras((prev) => [...prev, stats])
   }
 
+  const updateEstatisticasCarteira = (id: number, statsAtualizadas: Partial<EstatisticasCarteira>) => {
+    setEstatisticasCarteiras((prev) =>
+      prev.map((stats) => (stats.id === id ? { ...stats, ...statsAtualizadas } : stats)),
+    )
+  }
+
+  const deleteEstatisticasCarteira = (id: number) => {
+    setEstatisticasCarteiras((prev) => prev.filter((s) => s.id !== id))
+  }
+
   const updateDadosDiarios = (id: number, dadosAtualizados: Partial<DadosDiarios>) => {
     setDadosDiarios((prev) => prev.map((dados) => (dados.id === id ? { ...dados, ...dadosAtualizados } : dados)))
   }
@@ -258,7 +343,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const updateTreinamento = (id: number, treinamentoAtualizado: Partial<Treinamento>) => {
     setTreinamentos((prev) => {
+      const treinamentoAntigo = prev.find((t) => t.id === id)
       const updated = prev.map((t) => (t.id === id ? { ...t, ...treinamentoAtualizado } : t))
+
+      if (treinamentoAntigo && treinamentoAtualizado.status === "Aplicado" && treinamentoAntigo.status === "Pendente") {
+        const treinamento = updated.find((t) => t.id === id)
+        if (treinamento) {
+          // Create operator records for this training
+          const novosOperadores: Omit<Operador, "id">[] = []
+          for (let i = 1; i <= treinamento.quantidade; i++) {
+            novosOperadores.push({
+              nome: `Operador ${i} - ${treinamento.assunto}`,
+              assunto: treinamento.assunto,
+              dataConlusao: treinamento.data,
+              carteira: treinamento.carteira,
+              turno: treinamento.turno,
+            })
+          }
+
+          const operadoresComId = novosOperadores.map((operador, index) => ({
+            ...operador,
+            id: Date.now() + index + 1,
+          }))
+          setOperadores((prevOp) => [...prevOp, ...operadoresComId])
+        }
+      }
 
       if (treinamentoAtualizado.status || treinamentoAtualizado.carteira || treinamentoAtualizado.quantidade) {
         const treinamento = updated.find((t) => t.id === id)
@@ -371,6 +480,126 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setOperadores((prev) => [...prev, ...operadoresComId])
   }
 
+  const addOrUpdateMonitoringMonth = (monthData: MonthData) => {
+    setMonitoringData((prev) => {
+      const existingIndex = prev.findIndex((m) => m.year === monthData.year && m.month === monthData.month)
+      if (existingIndex >= 0) {
+        const updated = [...prev]
+        updated[existingIndex] = monthData
+        return updated
+      }
+      return [...prev, monthData]
+    })
+  }
+
+  const deleteMonitoringWeek = (year: number, month: number, weekId: string) => {
+    setMonitoringData((prev) => {
+      return prev.map((monthData) => {
+        if (monthData.year === year && monthData.month === month) {
+          return {
+            ...monthData,
+            weeks: monthData.weeks.filter((week) => week.id !== weekId),
+          }
+        }
+        return monthData
+      })
+    })
+  }
+
+  const updateMonitoringWeek = (year: number, month: number, weekId: string, weekData: WeekData) => {
+    setMonitoringData((prev) => {
+      return prev.map((monthData) => {
+        if (monthData.year === year && monthData.month === month) {
+          return {
+            ...monthData,
+            weeks: monthData.weeks.map((week) => (week.id === weekId ? weekData : week)),
+          }
+        }
+        return monthData
+      })
+    })
+  }
+
+  const getMonitoringStats = (year?: number, month?: number) => {
+    let dataToAnalyze: MonthData[]
+
+    if (year !== undefined && month !== undefined) {
+      dataToAnalyze = monitoringData.filter((m) => m.year === year && m.month === month)
+    } else {
+      dataToAnalyze = monitoringData
+    }
+
+    const totalConforme = dataToAnalyze.reduce(
+      (sum, monthData) => sum + monthData.weeks.reduce((weekSum, week) => weekSum + week.conforme, 0),
+      0,
+    )
+    const totalInconforme = dataToAnalyze.reduce(
+      (sum, monthData) => sum + monthData.weeks.reduce((weekSum, week) => weekSum + week.inconforme, 0),
+      0,
+    )
+    const total = totalConforme + totalInconforme
+
+    return {
+      conforme: totalConforme,
+      inconforme: totalInconforme,
+      total,
+      mediaConforme: total > 0 ? ((totalConforme / total) * 100).toFixed(2) : "0.00",
+      mediaInconforme: total > 0 ? ((totalInconforme / total) * 100).toFixed(2) : "0.00",
+    }
+  }
+
+  const addTIAEntry = (newEntry: Omit<TIAEntry, "id" | "totalPercent">) => {
+    const totalPercent = (newEntry.analisados / newEntry.quantidade) * 100
+    const entry: TIAEntry = {
+      ...newEntry,
+      id: Date.now().toString(),
+      totalPercent,
+    }
+    setTiaData((prev) => [...prev, entry].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
+  }
+
+  const updateTIAEntry = (id: string, updatedEntry: Partial<Omit<TIAEntry, "id">>) => {
+    setTiaData((prev) =>
+      prev.map((entry) => {
+        if (entry.id === id) {
+          const updated = { ...entry, ...updatedEntry }
+          if (updatedEntry.analisados !== undefined || updatedEntry.quantidade !== undefined) {
+            updated.totalPercent = (updated.analisados / updated.quantidade) * 100
+          }
+          return updated
+        }
+        return entry
+      }),
+    )
+  }
+
+  const deleteTIAEntry = (id: string) => {
+    setTiaData((prev) => prev.filter((entry) => entry.id !== id))
+  }
+
+  const getTIAStats = (year?: number, month?: number) => {
+    let dataToAnalyze = tiaData
+
+    if (year !== undefined && month !== undefined) {
+      dataToAnalyze = tiaData.filter((entry) => {
+        const entryDate = new Date(entry.date)
+        return entryDate.getFullYear() === year && entryDate.getMonth() === month
+      })
+    }
+
+    const totalEntries = dataToAnalyze.length
+    const totalAnalisados = dataToAnalyze.reduce((sum, entry) => sum + entry.analisados, 0)
+    const totalQuantidade = dataToAnalyze.reduce((sum, entry) => sum + entry.quantidade, 0)
+    const mediaPercent = totalQuantidade > 0 ? ((totalAnalisados / totalQuantidade) * 100).toFixed(10) : "0.0000000000"
+
+    return {
+      totalEntries,
+      totalAnalisados,
+      totalQuantidade,
+      mediaPercent,
+    }
+  }
+
   const value: DataContextType = {
     carteiras,
     treinamentos,
@@ -379,9 +608,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     dadosDiarios,
     estatisticasCarteiras,
     operadores,
+    monitoringData,
+    tiaData,
     addCarteira,
     updateCarteira,
-    removeCarteira,
+    deleteCarteira,
     addTreinamento,
     addAssunto,
     updateAssunto,
@@ -392,6 +623,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateDadosDiarios,
     deleteDadosDiarios,
     addEstatisticasCarteira,
+    updateEstatisticasCarteira,
+    deleteEstatisticasCarteira,
     updateDesligamento,
     deleteDesligamento,
     addOperador,
@@ -401,6 +634,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     getCapacitacaoStats,
     getDesligamentosStats,
     getTreinadosStats,
+    addOrUpdateMonitoringMonth,
+    deleteMonitoringWeek,
+    updateMonitoringWeek,
+    getMonitoringStats,
+    addTIAEntry,
+    updateTIAEntry,
+    deleteTIAEntry,
+    getTIAStats,
   }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

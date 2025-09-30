@@ -21,6 +21,7 @@ import {
   Filter,
   Check,
   FilterX,
+  FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -53,6 +54,8 @@ const tabs = [
   { id: "desligamentos", label: "Desligamentos", icon: UserX },
   { id: "carteiras", label: "Carteiras", icon: Wallet },
   { id: "operadores", label: "Operadores", icon: Users },
+  { id: "relatorio-monitorias", label: "Relatório de Monitorias", icon: FileText },
+  { id: "apuracao-tia", label: "Apuração TIA", icon: FileText },
 ]
 
 export function DashboardLayout({
@@ -238,6 +241,8 @@ export function DashboardLayout({
         case "overview":
         case "carteiras":
         case "operadores":
+        case "relatorio-monitorias":
+        case "apuracao-tia": // Added Apuração TIA tab
           return secaoFilter
         default:
           return secaoFilter
