@@ -40,7 +40,7 @@ export function CarteirasTab({ filters }: CarteirasTabProps) {
   const { user } = useAuth()
   const isAdmin = hasPermission(user, "edit")
 
-  const { carteiras, addCarteira, updateCarteira, removeCarteira } = useData()
+  const { carteiras, addCarteira, updateCarteira, deleteCarteira } = useData()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingCarteira, setEditingCarteira] = useState<{ id: string; name: string } | null>(null)
@@ -72,7 +72,7 @@ export function CarteirasTab({ filters }: CarteirasTabProps) {
   }
 
   const handleDeleteCarteira = (id: string, name: string) => {
-    removeCarteira(id)
+    deleteCarteira(id)
     toast({
       title: "Carteira removida",
       description: `A carteira "${name}" foi removida com sucesso.`,

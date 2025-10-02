@@ -99,12 +99,12 @@ export function OverviewTab({ filters }: OverviewTabProps) {
   const treinadosStats = getTreinadosStats()
 
   const filteredDadosDiarios = dadosDiarios.filter((dados) => {
-    if (selectedSection === "caixa" && dados.secao !== "Caixa") {
+    if (selectedSection === "caixa" && dados.secao.toLowerCase() !== "caixa") {
       return false
     }
 
     // For COB section, only show Cobrança data
-    if (selectedSection === "cob" && dados.secao !== "Cobrança") {
+    if (selectedSection === "cob" && dados.secao.toLowerCase() !== "cobrança") {
       return false
     }
 
@@ -145,9 +145,9 @@ export function OverviewTab({ filters }: OverviewTabProps) {
     return matchDateRange && matchTurno && matchCarteira && matchStatus
   })
 
-  const caixaTreinamentos = filteredTreinamentos.filter((treinamento) => treinamento.carteira === "Caixa")
+  const caixaTreinamentos = filteredTreinamentos.filter((treinamento) => treinamento.carteira.toLowerCase() === "caixa")
 
-  const cobTreinamentos = filteredTreinamentos.filter((treinamento) => treinamento.carteira !== "Caixa")
+  const cobTreinamentos = filteredTreinamentos.filter((treinamento) => treinamento.carteira.toLowerCase() !== "caixa")
 
   const filteredDesligamentos = desligamentos.filter((desligamento) => {
     if (!filters) return true
@@ -330,8 +330,8 @@ export function OverviewTab({ filters }: OverviewTabProps) {
 
   const uniqueCarteiras = Array.from(new Set(filteredCarteiraStats.map((stat) => stat.carteira)))
 
-  const caixaCarteiras = carteiras.filter((carteira) => carteira.name === "Caixa")
-  const cobCarteiras = carteiras.filter((carteira) => carteira.name !== "Caixa")
+  const caixaCarteiras = carteiras.filter((carteira) => carteira.name.toLowerCase() === "caixa")
+  const cobCarteiras = carteiras.filter((carteira) => carteira.name.toLowerCase() !== "caixa")
 
   return (
     <div className="space-y-6">
