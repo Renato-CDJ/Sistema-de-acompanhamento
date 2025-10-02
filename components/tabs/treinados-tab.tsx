@@ -46,13 +46,17 @@ export function TreinadosTab({ filters }: TreinadosTabProps) {
 
   const assuntosStats = assuntosUnicos.map((assunto, index) => ({
     assunto,
-    quantidade: operadoresTreinados.filter((o) => o.assunto === assunto).length,
+    quantidade: operadoresTreinados
+      .filter((o) => o.assunto === assunto)
+      .reduce((sum, o) => sum + (o.quantidade || 0), 0),
     color: `hsl(${(index * 360) / assuntosUnicos.length}, 70%, 50%)`,
   }))
 
   const carteiraStats = carteiras.map((carteira, index) => ({
     carteira: carteira.name,
-    quantidade: operadoresTreinados.filter((o) => o.carteira === carteira.name).length,
+    quantidade: operadoresTreinados
+      .filter((o) => o.carteira === carteira.name)
+      .reduce((sum, o) => sum + (o.quantidade || 0), 0),
     color: `hsl(${(index * 360) / carteiras.length}, 70%, 50%)`,
   }))
 

@@ -33,6 +33,11 @@ export interface Desligamento {
   observacao: string
 }
 
+export interface MotivoDesligamento {
+  id: number
+  nome: string
+}
+
 export interface DadosDiarios {
   id: number
   data: string

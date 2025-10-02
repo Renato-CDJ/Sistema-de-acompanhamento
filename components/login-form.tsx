@@ -20,25 +20,29 @@ export function LoginForm() {
 
   const [displayText, setDisplayText] = useState("")
   const [isVisible, setIsVisible] = useState(true)
-  const fullText = "Área de Qualidade"
 
   useEffect(() => {
+    const fullText = "Área de Qualidade"
+    let typeInterval: NodeJS.Timeout
+    let hideTimeout: NodeJS.Timeout
+    let restartTimeout: NodeJS.Timeout
+
     const typewriterEffect = () => {
       setDisplayText("")
       setIsVisible(true)
 
       let currentIndex = 0
-      const typeInterval = setInterval(() => {
+      typeInterval = setInterval(() => {
         if (currentIndex <= fullText.length) {
           setDisplayText(fullText.slice(0, currentIndex))
           currentIndex++
         } else {
           clearInterval(typeInterval)
 
-          setTimeout(() => {
+          hideTimeout = setTimeout(() => {
             setIsVisible(false)
 
-            setTimeout(() => {
+            restartTimeout = setTimeout(() => {
               typewriterEffect()
             }, 1000)
           }, 2000)
@@ -47,6 +51,12 @@ export function LoginForm() {
     }
 
     typewriterEffect()
+
+    return () => {
+      clearInterval(typeInterval)
+      clearTimeout(hideTimeout)
+      clearTimeout(restartTimeout)
+    }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -50,6 +50,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
     deleteCarteira,
     addTreinamento,
     updateTreinamento,
+    deleteTreinamento,
     addAssunto,
     updateAssunto,
     deleteAssunto,
@@ -191,6 +192,17 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
     }
   }
 
+  const handleDeleteTreinamento = (id: number) => {
+    if (confirm("Tem certeza que deseja excluir este treinamento?")) {
+      deleteTreinamento(id)
+      toast({
+        title: "Sucesso!",
+        description: "Treinamento removido com sucesso.",
+        variant: "default",
+      })
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -263,23 +275,11 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-semibold">{carteira.name}</h4>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={carteira.taxa >= 90 ? "default" : carteira.taxa >= 70 ? "secondary" : "destructive"}
-                        >
-                          {carteira.taxa.toFixed(1)}%
-                        </Badge>
-                        {isAdmin && (
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => handleEditCarteira(index)}>
-                              Editar
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDeleteCarteira(carteira.id)}>
-                              Excluir
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      <Badge
+                        variant={carteira.taxa >= 90 ? "default" : carteira.taxa >= 70 ? "secondary" : "destructive"}
+                      >
+                        {carteira.taxa.toFixed(1)}%
+                      </Badge>
                     </div>
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
@@ -632,9 +632,19 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                     <TableCell>{treinamento.cargaHoraria || "-"}</TableCell>
                     {isAdmin && (
                       <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => handleEditTreinamento(treinamento)}>
-                          Editar Status
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditTreinamento(treinamento)}>
+                            Editar Status
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteTreinamento(treinamento.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>

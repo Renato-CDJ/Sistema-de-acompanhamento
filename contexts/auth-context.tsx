@@ -18,21 +18,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   })
 
   useEffect(() => {
-    // Check for stored auth state
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      const user = JSON.parse(storedUser)
-      setAuthState({ user, isAuthenticated: true })
+    if (typeof window !== "undefined") {
+      // Check for stored auth state
+      const storedUser = localStorage.getItem("user")
+      if (storedUser) {
+        const user = JSON.parse(storedUser)
+        setAuthState({ user, isAuthenticated: true })
+      }
     }
   }, [])
 
   const login = (user: User) => {
-    localStorage.setItem("user", JSON.stringify(user))
+    if (typeof window !== "undefined") {
+      localStorage.setItem("user", JSON.stringify(user))
+    }
     setAuthState({ user, isAuthenticated: true })
   }
 
   const logout = () => {
-    localStorage.removeItem("user")
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("user")
+    }
     setAuthState({ user: null, isAuthenticated: false })
   }
 

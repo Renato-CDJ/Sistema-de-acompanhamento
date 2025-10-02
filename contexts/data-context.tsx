@@ -70,6 +70,11 @@ interface Operador {
   turno: string
 }
 
+interface MotivoDesligamento {
+  id: number
+  nome: string
+}
+
 interface WeekData {
   id: string
   conforme: number
@@ -103,9 +108,14 @@ interface DataContextType {
   updateAssunto: (index: number, novoAssunto: string) => void
   deleteAssunto: (index: number) => void
   updateTreinamento: (id: number, treinamento: Partial<Treinamento>) => void
+  deleteTreinamento: (id: number) => void
 
   // Desligamentos
   desligamentos: Desligamento[]
+  motivosDesligamento: MotivoDesligamento[]
+  addMotivoDesligamento: (nome: string) => void
+  updateMotivoDesligamento: (id: number, nome: string) => void
+  deleteMotivoDesligamento: (id: number) => void
   addDesligamento: (desligamento: Omit<Desligamento, "id">) => void
   updateDesligamento: (id: number, desligamento: Partial<Desligamento>) => void
   deleteDesligamento: (id: number) => void
@@ -150,6 +160,8 @@ interface DataContextType {
       assunto: string
       dataConlusao: string
       carteira: string
+      turno: string
+      quantidade: number
     }>
   }
 
@@ -188,11 +200,14 @@ const DataContext = createContext<DataContextType | undefined>(undefined)
 
 const initialAssuntos: string[] = []
 
+const initialMotivosDesligamento: MotivoDesligamento[] = []
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const [carteiras, setCarteiras] = useState<Carteira[]>([])
   const [treinamentos, setTreinamentos] = useState<Treinamento[]>([])
   const [assuntos, setAssuntos] = useState<string[]>(initialAssuntos)
   const [desligamentos, setDesligamentos] = useState<Desligamento[]>([])
+  const [motivosDesligamento, setMotivosDesligamento] = useState<MotivoDesligamento[]>(initialMotivosDesligamento)
   const [dadosDiarios, setDadosDiarios] = useState<DadosDiarios[]>([])
   const [estatisticasCarteiras, setEstatisticasCarteiras] = useState<EstatisticasCarteira[]>([])
   const [operadores, setOperadores] = useState<Operador[]>([])
@@ -227,26 +242,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     setTreinamentos((prev) => [...prev, treinamento])
-
-    if (treinamento.status === "Aplicado" && treinamento.quantidade > 0) {
-      const novosOperadores: Omit<Operador, "id">[] = []
-      for (let i = 1; i <= treinamento.quantidade; i++) {
-        novosOperadores.push({
-          nome: `Operador ${i} - ${treinamento.assunto}`,
-          assunto: treinamento.assunto,
-          dataConlusao: treinamento.data,
-          carteira: treinamento.carteira,
-          turno: treinamento.turno,
-        })
-      }
-
-      // Add all operators at once
-      const operadoresComId = novosOperadores.map((operador, index) => ({
-        ...operador,
-        id: Date.now() + index + 1,
-      }))
-      setOperadores((prev) => [...prev, ...operadoresComId])
-    }
 
     setCarteiras((prev) =>
       prev.map((carteira) => {
@@ -346,29 +341,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const treinamentoAntigo = prev.find((t) => t.id === id)
       const updated = prev.map((t) => (t.id === id ? { ...t, ...treinamentoAtualizado } : t))
 
-      if (treinamentoAntigo && treinamentoAtualizado.status === "Aplicado" && treinamentoAntigo.status === "Pendente") {
-        const treinamento = updated.find((t) => t.id === id)
-        if (treinamento) {
-          // Create operator records for this training
-          const novosOperadores: Omit<Operador, "id">[] = []
-          for (let i = 1; i <= treinamento.quantidade; i++) {
-            novosOperadores.push({
-              nome: `Operador ${i} - ${treinamento.assunto}`,
-              assunto: treinamento.assunto,
-              dataConlusao: treinamento.data,
-              carteira: treinamento.carteira,
-              turno: treinamento.turno,
-            })
-          }
-
-          const operadoresComId = novosOperadores.map((operador, index) => ({
-            ...operador,
-            id: Date.now() + index + 1,
-          }))
-          setOperadores((prevOp) => [...prevOp, ...operadoresComId])
-        }
-      }
-
       if (treinamentoAtualizado.status || treinamentoAtualizado.carteira || treinamentoAtualizado.quantidade) {
         const treinamento = updated.find((t) => t.id === id)
         if (treinamento) {
@@ -394,6 +366,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }),
           )
         }
+      }
+
+      return updated
+    })
+  }
+
+  const deleteTreinamento = (id: number) => {
+    setTreinamentos((prev) => {
+      const treinamentoToDelete = prev.find((t) => t.id === id)
+      const updated = prev.filter((t) => t.id !== id)
+
+      // Recalculate carteira stats after deletion
+      if (treinamentoToDelete) {
+        setCarteiras((prevCarteiras) =>
+          prevCarteiras.map((carteira) => {
+            if (carteira.name === treinamentoToDelete.carteira) {
+              const treinamentosCarteira = updated.filter((t) => t.carteira === carteira.name)
+              const newTotal = treinamentosCarteira.reduce((sum, t) => sum + t.quantidade, 0)
+              const newAplicados = treinamentosCarteira
+                .filter((t) => t.status === "Aplicado")
+                .reduce((sum, t) => sum + t.quantidade, 0)
+              const newPendentes = treinamentosCarteira
+                .filter((t) => t.status === "Pendente")
+                .reduce((sum, t) => sum + t.quantidade, 0)
+              const newTaxa = newTotal > 0 ? Math.round((newAplicados / newTotal) * 100 * 10) / 10 : 0
+
+              return {
+                ...carteira,
+                total: newTotal,
+                aplicados: newAplicados,
+                pendentes: newPendentes,
+                taxa: newTaxa,
+              }
+            }
+            return carteira
+          }),
+        )
       }
 
       return updated
@@ -432,13 +441,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }
 
   const getTreinadosStats = () => {
-    const totalTreinados = operadores.length
-    const assuntosUnicos = [...new Set(operadores.map((o) => o.assunto))]
+    const treinamentosAplicados = treinamentos.filter((t) => t.status === "Aplicado")
+    const totalTreinados = treinamentosAplicados.reduce((sum, t) => sum + t.quantidade, 0)
+    const assuntosUnicos = [...new Set(treinamentosAplicados.map((t) => t.assunto))]
+
+    // Create detailed list of trained operators from training sessions
+    const operadoresTreinados = treinamentosAplicados.map((t) => ({
+      id: t.id,
+      nome: `${t.quantidade} operadores`, // Show quantity instead of individual names
+      assunto: t.assunto,
+      dataConlusao: t.data,
+      carteira: t.carteira,
+      turno: t.turno,
+      quantidade: t.quantidade,
+    }))
 
     return {
       totalTreinados,
       assuntosUnicos,
-      operadoresTreinados: operadores,
+      operadoresTreinados,
     }
   }
 
@@ -590,7 +611,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const totalEntries = dataToAnalyze.length
     const totalAnalisados = dataToAnalyze.reduce((sum, entry) => sum + entry.analisados, 0)
     const totalQuantidade = dataToAnalyze.reduce((sum, entry) => sum + entry.quantidade, 0)
-    const mediaPercent = totalQuantidade > 0 ? ((totalAnalisados / totalQuantidade) * 100).toFixed(10) : "0.0000000000"
+    const mediaPercent = totalQuantidade > 0 ? ((totalAnalisados / totalQuantidade) * 100).toFixed(2) : "0.00"
 
     return {
       totalEntries,
@@ -600,11 +621,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const addMotivoDesligamento = (nome: string) => {
+    const motivo: MotivoDesligamento = {
+      id: Date.now(),
+      nome,
+    }
+    setMotivosDesligamento((prev) => [...prev, motivo])
+  }
+
+  const updateMotivoDesligamento = (id: number, nome: string) => {
+    setMotivosDesligamento((prev) => {
+      const motivoAntigo = prev.find((m) => m.id === id)
+      const updated = prev.map((m) => (m.id === id ? { ...m, nome } : m))
+
+      // Update all desligamentos that use this motivo
+      if (motivoAntigo) {
+        setDesligamentos((prevDesligamentos) =>
+          prevDesligamentos.map((d) => (d.motivo === motivoAntigo.nome ? { ...d, motivo: nome } : d)),
+        )
+      }
+
+      return updated
+    })
+  }
+
+  const deleteMotivoDesligamento = (id: number) => {
+    setMotivosDesligamento((prev) => prev.filter((m) => m.id !== id))
+  }
+
   const value: DataContextType = {
     carteiras,
     treinamentos,
     assuntos,
     desligamentos,
+    motivosDesligamento,
+    addMotivoDesligamento,
+    updateMotivoDesligamento,
+    deleteMotivoDesligamento,
     dadosDiarios,
     estatisticasCarteiras,
     operadores,
@@ -618,6 +671,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateAssunto,
     deleteAssunto,
     updateTreinamento,
+    deleteTreinamento,
     addDesligamento,
     addDadosDiarios,
     updateDadosDiarios,

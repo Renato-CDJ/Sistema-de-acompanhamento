@@ -10,7 +10,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
-import { Eye, EyeOff, UserX, AlertTriangle, Building2, Edit, Trash2, Filter } from "lucide-react"
+import { Eye, EyeOff, UserX, AlertTriangle, Building2, Edit, Trash2, Filter, Plus, Settings } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/auth"
 import { useData } from "@/contexts/data-context"
@@ -37,12 +45,26 @@ interface DesligamentosTabProps {
 export function DesligamentosTab({ filters }: DesligamentosTabProps) {
   const { user } = useAuth()
   const isAdmin = hasPermission(user, "edit")
-  const { desligamentos, addDesligamento, updateDesligamento, deleteDesligamento, getDesligamentosStats, carteiras } =
-    useData()
+  const {
+    desligamentos,
+    addDesligamento,
+    updateDesligamento,
+    deleteDesligamento,
+    getDesligamentosStats,
+    carteiras,
+    motivosDesligamento,
+    addMotivoDesligamento,
+    updateMotivoDesligamento,
+    deleteMotivoDesligamento,
+  } = useData()
 
   const [showCharts, setShowCharts] = useState(true)
   const [dateFilter, setDateFilter] = useState("")
   const [carteiraFilter, setCarteiraFilter] = useState("todas")
+
+  const [showMotivosDialog, setShowMotivosDialog] = useState(false)
+  const [novoMotivo, setNovoMotivo] = useState("")
+  const [editingMotivo, setEditingMotivo] = useState<{ id: number; nome: string } | null>(null)
 
   const stats = getDesligamentosStats()
 
@@ -116,6 +138,39 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
     }
   }
 
+  const handleAddMotivo = () => {
+    if (novoMotivo.trim()) {
+      if (editingMotivo) {
+        updateMotivoDesligamento(editingMotivo.id, novoMotivo.trim())
+        alert("Motivo atualizado com sucesso!")
+      } else {
+        addMotivoDesligamento(novoMotivo.trim())
+        alert("Motivo adicionado com sucesso!")
+      }
+      setNovoMotivo("")
+      setEditingMotivo(null)
+    } else {
+      alert("Por favor, insira um nome para o motivo")
+    }
+  }
+
+  const handleEditMotivo = (motivo: { id: number; nome: string }) => {
+    setEditingMotivo(motivo)
+    setNovoMotivo(motivo.nome)
+  }
+
+  const handleDeleteMotivo = (id: number) => {
+    if (confirm("Tem certeza que deseja excluir este motivo de desligamento?")) {
+      deleteMotivoDesligamento(id)
+      alert("Motivo excluído com sucesso!")
+    }
+  }
+
+  const handleCancelEditMotivo = () => {
+    setEditingMotivo(null)
+    setNovoMotivo("")
+  }
+
   const pieDataAvisoPrevia = [
     { name: "Com Aviso Prévio", value: stats.comAvisoPrevia, color: "#22c55e" },
     { name: "Sem Aviso Prévio", value: stats.semAvisoPrevia, color: "#ef4444" },
@@ -123,8 +178,8 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
 
   const pieDataMotivos = motivosDesligamento
     .map((motivo, index) => ({
-      name: motivo,
-      value: desligamentos.filter((d) => d.motivo === motivo).length,
+      name: motivo.nome,
+      value: desligamentos.filter((d) => d.motivo === motivo.nome).length,
       color: `hsl(${(index * 360) / motivosDesligamento.length}, 70%, 50%)`,
     }))
     .filter((item) => item.value > 0)
@@ -332,10 +387,93 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
       {isAdmin && (
         <Card>
           <CardHeader>
-            <CardTitle>{editingDesligamento ? "Editar Desligamento" : "Registrar Novo Desligamento"}</CardTitle>
-            <CardDescription>
-              {editingDesligamento ? "Edite os dados do desligamento" : "Adicione um novo registro de desligamento"}
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>{editingDesligamento ? "Editar Desligamento" : "Registrar Novo Desligamento"}</CardTitle>
+                <CardDescription>
+                  {editingDesligamento ? "Edite os dados do desligamento" : "Adicione um novo registro de desligamento"}
+                </CardDescription>
+              </div>
+              <Dialog open={showMotivosDialog} onOpenChange={setShowMotivosDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2 bg-transparent">
+                    <Settings className="h-4 w-4" />
+                    Gerenciar Motivos
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Gerenciar Motivos de Desligamento</DialogTitle>
+                    <DialogDescription>
+                      Adicione, edite ou exclua motivos de desligamento personalizados
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    {/* Add/Edit Motivo Form */}
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Input
+                          placeholder="Nome do motivo"
+                          value={novoMotivo}
+                          onChange={(e) => setNovoMotivo(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleAddMotivo()
+                            }
+                          }}
+                        />
+                      </div>
+                      <Button onClick={handleAddMotivo} className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        {editingMotivo ? "Atualizar" : "Adicionar"}
+                      </Button>
+                      {editingMotivo && (
+                        <Button variant="outline" onClick={handleCancelEditMotivo}>
+                          Cancelar
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Motivos List */}
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Motivo</TableHead>
+                            <TableHead className="w-24">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {motivosDesligamento.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={2} className="text-center text-muted-foreground">
+                                Nenhum motivo cadastrado
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            motivosDesligamento.map((motivo) => (
+                              <TableRow key={motivo.id}>
+                                <TableCell className="font-medium">{motivo.nome}</TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => handleEditMotivo(motivo)}>
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => handleDeleteMotivo(motivo.id)}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
@@ -399,12 +537,27 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
               </div>
               <div>
                 <Label htmlFor="motivo">Motivo *</Label>
-                <Input
-                  id="motivo"
+                <Select
                   value={novoDesligamento.motivo}
-                  onChange={(e) => setNovoDesligamento({ ...novoDesligamento, motivo: e.target.value })}
-                  placeholder="Digite o motivo do desligamento"
-                />
+                  onValueChange={(value) => setNovoDesligamento({ ...novoDesligamento, motivo: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar motivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {motivosDesligamento.length === 0 ? (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        Nenhum motivo cadastrado. Clique em "Gerenciar Motivos" para adicionar.
+                      </div>
+                    ) : (
+                      motivosDesligamento.map((motivo) => (
+                        <SelectItem key={motivo.id} value={motivo.nome}>
+                          {motivo.nome}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="aviso-previa">Aviso Prévio</Label>

@@ -24,6 +24,7 @@ import { Upload, Download, Plus, Edit, Trash2, FileSpreadsheet, Filter, Users } 
 import { useAuth } from "@/contexts/auth-context"
 import { useData } from "@/contexts/data-context"
 import { hasPermission } from "@/lib/auth"
+import * as XLSX from "xlsx"
 
 export function OperadoresTab() {
   const { user } = useAuth()
@@ -34,7 +35,7 @@ export function OperadoresTab() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { operadores, addOperador, updateOperador, deleteOperador, importOperadores, assuntos } = useData()
+  const { operadores, addOperador, updateOperador, deleteOperador, importOperadores, assuntos, carteiras } = useData()
   const totalTreinados = operadores.length
 
   const [filtrosAplicados, setFiltrosAplicados] = useState({
@@ -51,6 +52,8 @@ export function OperadoresTab() {
     nome: "",
     assunto: "",
     dataConlusao: "",
+    carteira: "",
+    turno: "",
   })
 
   const treinadosFiltrados = operadores.filter((treinado) => {
@@ -110,6 +113,8 @@ export function OperadoresTab() {
               nome: values[0],
               assunto: values[1] || "Treinamento Geral",
               dataConlusao: dataConlusao || new Date().toISOString().split("T")[0],
+              carteira: values[3] || "",
+              turno: values[4] || "",
             })
           }
         }
@@ -152,7 +157,7 @@ export function OperadoresTab() {
   }
 
   const handleAddOperador = () => {
-    if (!formData.nome || !formData.assunto || !formData.dataConlusao) {
+    if (!formData.nome || !formData.assunto || !formData.dataConlusao || !formData.carteira || !formData.turno) {
       alert("Por favor, preencha todos os campos obrigatórios.")
       return
     }
@@ -174,6 +179,8 @@ export function OperadoresTab() {
         nome,
         assunto: formData.assunto,
         dataConlusao: formData.dataConlusao,
+        carteira: formData.carteira,
+        turno: formData.turno,
       })
     })
 
@@ -183,12 +190,14 @@ export function OperadoresTab() {
       nome: "",
       assunto: "",
       dataConlusao: "",
+      carteira: "",
+      turno: "",
     })
     setShowAddDialog(false)
   }
 
   const handleSaveEdit = () => {
-    if (!formData.nome || !formData.assunto || !formData.dataConlusao) {
+    if (!formData.nome || !formData.assunto || !formData.dataConlusao || !formData.carteira || !formData.turno) {
       alert("Por favor, preencha todos os campos obrigatórios.")
       return
     }
@@ -199,6 +208,8 @@ export function OperadoresTab() {
       nome: "",
       assunto: "",
       dataConlusao: "",
+      carteira: "",
+      turno: "",
     })
     setShowAddDialog(false)
   }
@@ -211,33 +222,25 @@ export function OperadoresTab() {
 
   const handleDownloadPlanilha = () => {
     try {
-      // Create CSV content without turno
-      const headers = ["Nome", "Assunto", "Data Conclusão"]
-      const csvContent = [
-        headers.join(","),
-        ...treinadosFiltrados.map((operador) =>
-          [
-            `"${operador.nome}"`,
-            `"${operador.assunto}"`,
-            `"${new Date(operador.dataConlusao).toLocaleDateString("pt-BR")}"`,
-          ].join(","),
-        ),
-      ].join("\n")
+      // Create worksheet data
+      const worksheetData = [
+        ["Nome", "Assunto", "Data Conclusão", "Carteira", "Turno"],
+        ...treinadosFiltrados.map((operador) => [
+          operador.nome,
+          operador.assunto,
+          new Date(operador.dataConlusao).toLocaleDateString("pt-BR"),
+          operador.carteira,
+          operador.turno,
+        ]),
+      ]
 
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-      const link = document.createElement("a")
-      const url = URL.createObjectURL(blob)
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Operadores Treinados")
 
-      link.setAttribute("href", url)
-      link.setAttribute("download", `operadores_treinados_${new Date().toISOString().split("T")[0]}.csv`)
-      link.style.visibility = "hidden"
-
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
-      URL.revokeObjectURL(url)
+      // Generate Excel file and download
+      XLSX.writeFile(workbook, `operadores_treinados_${new Date().toISOString().split("T")[0]}.xlsx`)
     } catch (error) {
       console.error("Erro ao exportar planilha:", error)
       alert("Erro ao exportar planilha. Tente novamente.")
@@ -250,6 +253,8 @@ export function OperadoresTab() {
       nome: operador.nome,
       assunto: operador.assunto,
       dataConlusao: operador.dataConlusao,
+      carteira: operador.carteira,
+      turno: operador.turno,
     })
     setShowAddDialog(true)
   }
@@ -388,7 +393,7 @@ export function OperadoresTab() {
                               id="nome"
                               value={formData.nome}
                               onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                              placeholder="Digite um nome por linha&#10;Exemplo:&#10;João Silva&#10;Maria Santos&#10;Pedro Costa"
+                              placeholder="Digite um nome por linha para adicionar múltiplos operadores de uma vez"
                               rows={4}
                               className="resize-none"
                             />
@@ -400,7 +405,7 @@ export function OperadoresTab() {
                           )}
                         </div>
                         <div>
-                          <Label htmlFor="assunto">Assunto</Label>
+                          <Label htmlFor="assunto">Assunto *</Label>
                           <Select
                             value={formData.assunto}
                             onValueChange={(value) => setFormData({ ...formData, assunto: value })}
@@ -409,16 +414,62 @@ export function OperadoresTab() {
                               <SelectValue placeholder="Selecione um assunto" />
                             </SelectTrigger>
                             <SelectContent>
-                              {assuntos.map((assunto) => (
-                                <SelectItem key={assunto} value={assunto}>
-                                  {assunto}
-                                </SelectItem>
-                              ))}
+                              {assuntos.length === 0 ? (
+                                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                                  Nenhum assunto cadastrado. Acesse a aba "Capacitação" para adicionar.
+                                </div>
+                              ) : (
+                                assuntos.map((assunto) => (
+                                  <SelectItem key={assunto} value={assunto}>
+                                    {assunto}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
-                          <Label htmlFor="dataConlusao">Data de Conclusão</Label>
+                          <Label htmlFor="carteira">Carteira *</Label>
+                          <Select
+                            value={formData.carteira}
+                            onValueChange={(value) => setFormData({ ...formData, carteira: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma carteira" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {carteiras.length === 0 ? (
+                                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                                  Nenhuma carteira cadastrada. Acesse a aba "Carteiras" para adicionar.
+                                </div>
+                              ) : (
+                                carteiras.map((carteira) => (
+                                  <SelectItem key={carteira.id} value={carteira.name}>
+                                    {carteira.name}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="turno">Turno *</Label>
+                          <Select
+                            value={formData.turno}
+                            onValueChange={(value) => setFormData({ ...formData, turno: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um turno" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Manhã">Manhã</SelectItem>
+                              <SelectItem value="Tarde">Tarde</SelectItem>
+                              <SelectItem value="Integral">Integral</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="dataConlusao">Data de Conclusão *</Label>
                           <Input
                             id="dataConlusao"
                             type="date"
@@ -437,6 +488,8 @@ export function OperadoresTab() {
                               nome: "",
                               assunto: "",
                               dataConlusao: "",
+                              carteira: "",
+                              turno: "",
                             })
                           }}
                         >
@@ -468,6 +521,8 @@ export function OperadoresTab() {
                   <TableHead>Nome</TableHead>
                   <TableHead>Assunto</TableHead>
                   <TableHead>Data Conclusão</TableHead>
+                  <TableHead>Carteira</TableHead>
+                  <TableHead>Turno</TableHead>
                   {isAdmin && <TableHead>Ações</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -478,6 +533,8 @@ export function OperadoresTab() {
                       <TableCell className="font-medium">{treinado.nome}</TableCell>
                       <TableCell>{treinado.assunto}</TableCell>
                       <TableCell>{new Date(treinado.dataConlusao).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell>{treinado.carteira}</TableCell>
+                      <TableCell>{treinado.turno}</TableCell>
                       {isAdmin && (
                         <TableCell>
                           <div className="flex gap-2">
@@ -504,7 +561,7 @@ export function OperadoresTab() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 4 : 3} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={isAdmin ? 6 : 5} className="text-center py-8 text-muted-foreground">
                       Nenhum operador encontrado com os filtros aplicados
                     </TableCell>
                   </TableRow>
