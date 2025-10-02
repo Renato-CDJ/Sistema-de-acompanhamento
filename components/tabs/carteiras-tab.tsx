@@ -27,6 +27,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Plus, Edit, Trash2, Wallet } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { hasPermission } from "@/lib/auth"
 import { useData } from "@/contexts/data-context"
 import { toast } from "@/hooks/use-toast"
 
@@ -35,6 +37,9 @@ interface CarteirasTabProps {
 }
 
 export function CarteirasTab({ filters }: CarteirasTabProps) {
+  const { user } = useAuth()
+  const isAdmin = hasPermission(user, "edit")
+
   const { carteiras, addCarteira, updateCarteira, removeCarteira } = useData()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -91,44 +96,46 @@ export function CarteirasTab({ filters }: CarteirasTabProps) {
             abas.
           </p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Adicionar Carteira
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Adicionar Nova Carteira</DialogTitle>
-              <DialogDescription>Digite o nome da nova carteira que será adicionada ao sistema.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="carteira-name">Nome da Carteira</Label>
-                <Input
-                  id="carteira-name"
-                  placeholder="Digite o nome da carteira"
-                  value={newCarteiraName}
-                  onChange={(e) => setNewCarteiraName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleAddCarteira()
-                    }
-                  }}
-                />
+        {isAdmin && (
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Adicionar Carteira
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Adicionar Nova Carteira</DialogTitle>
+                <DialogDescription>Digite o nome da nova carteira que será adicionada ao sistema.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="carteira-name">Nome da Carteira</Label>
+                  <Input
+                    id="carteira-name"
+                    placeholder="Digite o nome da carteira"
+                    value={newCarteiraName}
+                    onChange={(e) => setNewCarteiraName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleAddCarteira()
+                      }
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleAddCarteira} disabled={!newCarteiraName.trim()}>
-                Adicionar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleAddCarteira} disabled={!newCarteiraName.trim()}>
+                  Adicionar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Carteiras List */}
@@ -152,10 +159,12 @@ export function CarteirasTab({ filters }: CarteirasTabProps) {
               <p className="text-muted-foreground mb-4">
                 Comece adicionando sua primeira carteira para organizar melhor seus dados.
               </p>
-              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Adicionar Primeira Carteira
-              </Button>
+              {isAdmin && (
+                <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Adicionar Primeira Carteira
+                </Button>
+              )}
             </div>
           ) : (
             <Table>
@@ -163,7 +172,7 @@ export function CarteirasTab({ filters }: CarteirasTabProps) {
                 <TableRow>
                   <TableHead>Nome da Carteira</TableHead>
                   <TableHead>Data de Criação</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  {isAdmin && <TableHead className="text-right">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -173,44 +182,51 @@ export function CarteirasTab({ filters }: CarteirasTabProps) {
                     <TableCell className="text-muted-foreground">
                       {new Date(carteira.createdAt).toLocaleDateString("pt-BR")}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => openEditDialog(carteira)} className="gap-2">
-                          <Edit className="h-4 w-4" />
-                          Editar
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-2 text-destructive hover:text-destructive bg-transparent"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Excluir
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir a carteira "{carteira.name}"? Esta ação não pode ser
-                                desfeita e a carteira será removida de todas as abas do sistema.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteCarteira(carteira.id, carteira.name)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(carteira)}
+                            className="gap-2"
+                          >
+                            <Edit className="h-4 w-4" />
+                            Editar
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-2 text-destructive hover:text-destructive bg-transparent"
                               >
+                                <Trash2 className="h-4 w-4" />
                                 Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir a carteira "{carteira.name}"? Esta ação não pode ser
+                                  desfeita e a carteira será removida de todas as abas do sistema.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteCarteira(carteira.id, carteira.name)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

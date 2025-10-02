@@ -29,8 +29,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
+import { useAuth } from "@/contexts/auth-context"
+import { hasPermission } from "@/lib/auth"
 
 export function ApuracaoTIATab() {
+  const { user } = useAuth()
+  const isAdmin = hasPermission(user, "edit")
+
   const { tiaData, addTIAEntry, updateTIAEntry, deleteTIAEntry } = useData()
 
   const [formData, setFormData] = useState({
@@ -108,54 +113,56 @@ export function ApuracaoTIATab() {
   return (
     <div className="space-y-6">
       {/* Form to add new entry */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Adicionar Registro TIA</CardTitle>
-          <CardDescription>Registre os dados de Tabulação Indevida de Acionamento</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="date">Data</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                />
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Adicionar Registro TIA</CardTitle>
+            <CardDescription>Registre os dados de Tabulação Indevida de Acionamento</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="date">Data</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="analisados">Analisados (Inconformes)</Label>
+                  <Input
+                    id="analisados"
+                    type="number"
+                    min="0"
+                    value={formData.analisados}
+                    onChange={(e) => setFormData({ ...formData, analisados: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="quantidade">Quantidade</Label>
+                  <Input
+                    id="quantidade"
+                    type="number"
+                    min="1"
+                    value={formData.quantidade}
+                    onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="analisados">Analisados (Inconformes)</Label>
-                <Input
-                  id="analisados"
-                  type="number"
-                  min="0"
-                  value={formData.analisados}
-                  onChange={(e) => setFormData({ ...formData, analisados: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="quantidade">Quantidade</Label>
-                <Input
-                  id="quantidade"
-                  type="number"
-                  min="1"
-                  value={formData.quantidade}
-                  onChange={(e) => setFormData({ ...formData, quantidade: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Registrar
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <Button type="submit" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Registrar
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {tiaData.length > 0 && (
         <Card>
@@ -203,13 +210,13 @@ export function ApuracaoTIATab() {
                   <TableHead className="text-right">Analisados (Inconformes)</TableHead>
                   <TableHead className="text-right">Quantidade</TableHead>
                   <TableHead className="text-right">Total %</TableHead>
-                  <TableHead className="text-center">Ações</TableHead>
+                  {isAdmin && <TableHead className="text-center">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tiaData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell colSpan={isAdmin ? 5 : 4} className="text-center text-muted-foreground">
                       Nenhum registro encontrado
                     </TableCell>
                   </TableRow>
@@ -220,27 +227,29 @@ export function ApuracaoTIATab() {
                       <TableCell className="text-right">{entry.analisados}</TableCell>
                       <TableCell className="text-right">{entry.quantidade}</TableCell>
                       <TableCell className="text-right">{entry.totalPercent.toFixed(10)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              setEditingEntry({
-                                id: entry.id,
-                                date: entry.date,
-                                analisados: entry.analisados,
-                                quantidade: entry.quantidade,
-                              })
-                            }
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(entry.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                setEditingEntry({
+                                  id: entry.id,
+                                  date: entry.date,
+                                  analisados: entry.analisados,
+                                  quantidade: entry.quantidade,
+                                })
+                              }
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(entry.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}

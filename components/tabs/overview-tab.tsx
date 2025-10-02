@@ -708,28 +708,82 @@ export function OverviewTab({ filters }: OverviewTabProps) {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {caixaCapacitacaoStats.totalTreinamentos > 0 && (
-              <Card>
+            {caixaCarteiras.length > 0 && (
+              <Card className="border-2 border-primary/20">
                 <CardHeader>
-                  <CardTitle className="text-lg">Treinamentos Concluídos</CardTitle>
-                  <CardDescription>Carteira Caixa</CardDescription>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    <CardTitle>Desempenho por Carteira</CardTitle>
+                  </div>
+                  <CardDescription>Taxa de desempenho da carteira Caixa</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Aplicados</span>
-                      <span className="text-2xl font-bold text-primary">{caixaCapacitacaoStats.aplicados}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Total</span>
-                      <span className="text-sm text-muted-foreground">{caixaCapacitacaoStats.totalTreinamentos}</span>
-                    </div>
-                    <div className="w-full bg-secondary rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full"
-                        style={{ width: `${caixaCapacitacaoStats.taxaConclusao}%` }}
-                      ></div>
-                    </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {caixaCarteiras.map((carteira) => {
+                      const performanceColor =
+                        carteira.taxa >= 80
+                          ? "text-green-600 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20"
+                          : carteira.taxa >= 60
+                            ? "text-blue-600 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20"
+                            : carteira.taxa >= 40
+                              ? "text-amber-600 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20"
+                              : "text-red-600 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
+
+                      return (
+                        <Card key={carteira.name} className={`border-2 ${performanceColor}`}>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Briefcase className="h-4 w-4" />
+                                <CardTitle className="text-base">{carteira.name}</CardTitle>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => setZoomedCarteira(carteira)}
+                              >
+                                <ZoomIn className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Taxa</span>
+                              <span className="text-3xl font-bold">{carteira.taxa.toFixed(1)}%</span>
+                            </div>
+                            <div className="w-full bg-secondary rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full ${
+                                  carteira.taxa >= 80
+                                    ? "bg-green-600"
+                                    : carteira.taxa >= 60
+                                      ? "bg-blue-600"
+                                      : carteira.taxa >= 40
+                                        ? "bg-amber-600"
+                                        : "bg-red-600"
+                                }`}
+                                style={{ width: `${carteira.taxa}%` }}
+                              ></div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 pt-2">
+                              <div className="text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Total</p>
+                                <p className="text-lg font-bold">{carteira.total}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Aplicados</p>
+                                <p className="text-lg font-bold text-green-600">{carteira.aplicados}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xs text-muted-foreground mb-1">Pendentes</p>
+                                <p className="text-lg font-bold text-amber-600">{carteira.pendentes}</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -1045,37 +1099,7 @@ export function OverviewTab({ filters }: OverviewTabProps) {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {cobCapacitacaoStats.totalTreinamentos > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Treinamentos Concluídos</CardTitle>
-                  <CardDescription>Carteiras de Cobrança</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Aplicados</span>
-                      <span className="text-2xl font-bold text-primary">{cobCapacitacaoStats.aplicados}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Pendentes</span>
-                      <span className="text-sm text-muted-foreground">{cobCapacitacaoStats.pendentes}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Total</span>
-                      <span className="text-sm text-muted-foreground">{cobCapacitacaoStats.totalTreinamentos}</span>
-                    </div>
-                    <div className="w-full bg-secondary rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full"
-                        style={{ width: `${cobCapacitacaoStats.taxaConclusao}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
+            {/* Changed: Removed Treinamentos Concluídos for Caixa from COB section and added Alertas for COB */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Alertas - Cobrança</CardTitle>

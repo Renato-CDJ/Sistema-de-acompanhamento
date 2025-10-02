@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { FileText, Trash2, EyeOff, Eye, Save, Edit2 } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { hasPermission } from "@/lib/auth"
 import { useData } from "@/contexts/data-context"
 import {
   AlertDialog,
@@ -61,6 +63,9 @@ const COLORS = {
 }
 
 export function RelatorioMonitoriasTab() {
+  const { user } = useAuth()
+  const isAdmin = hasPermission(user, "edit")
+
   const currentYear = new Date().getFullYear()
   const currentMonth = new Date().getMonth()
 
@@ -242,53 +247,55 @@ export function RelatorioMonitoriasTab() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Dados Semanais</CardTitle>
-          <CardDescription>Insira os dados de monitorias para cada semana (Segunda a Sábado)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 border rounded-lg bg-muted/30">
-            <h3 className="font-semibold mb-3">Registrar Nova Semana</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <Label htmlFor="new-conforme" className="text-sm">
-                  Conforme
-                </Label>
-                <Input
-                  id="new-conforme"
-                  type="number"
-                  min="0"
-                  value={weeklyInputs.conforme}
-                  onChange={(e) => setWeeklyInputs((prev) => ({ ...prev, conforme: e.target.value }))}
-                  placeholder="0"
-                  className="h-9"
-                />
-              </div>
-              <div>
-                <Label htmlFor="new-inconforme" className="text-sm">
-                  Inconforme
-                </Label>
-                <Input
-                  id="new-inconforme"
-                  type="number"
-                  min="0"
-                  value={weeklyInputs.inconforme}
-                  onChange={(e) => setWeeklyInputs((prev) => ({ ...prev, inconforme: e.target.value }))}
-                  placeholder="0"
-                  className="h-9"
-                />
-              </div>
-              <div className="flex items-end">
-                <Button onClick={registerWeekData} className="w-full h-9 gap-2">
-                  <Save className="h-4 w-4" />
-                  Registrar
-                </Button>
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Dados Semanais</CardTitle>
+            <CardDescription>Insira os dados de monitorias para cada semana (Segunda a Sábado)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 border rounded-lg bg-muted/30">
+              <h3 className="font-semibold mb-3">Registrar Nova Semana</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="new-conforme" className="text-sm">
+                    Conforme
+                  </Label>
+                  <Input
+                    id="new-conforme"
+                    type="number"
+                    min="0"
+                    value={weeklyInputs.conforme}
+                    onChange={(e) => setWeeklyInputs((prev) => ({ ...prev, conforme: e.target.value }))}
+                    placeholder="0"
+                    className="h-9"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-inconforme" className="text-sm">
+                    Inconforme
+                  </Label>
+                  <Input
+                    id="new-inconforme"
+                    type="number"
+                    min="0"
+                    value={weeklyInputs.inconforme}
+                    onChange={(e) => setWeeklyInputs((prev) => ({ ...prev, inconforme: e.target.value }))}
+                    placeholder="0"
+                    className="h-9"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={registerWeekData} className="w-full h-9 gap-2">
+                    <Save className="h-4 w-4" />
+                    Registrar
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -348,8 +355,12 @@ export function RelatorioMonitoriasTab() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Distribuição Percentual</CardTitle>
-            <CardDescription>Proporção entre conformes e inconformes</CardDescription>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle>Distribuição Percentual</CardTitle>
+                <CardDescription>Proporção entre conformes e inconformes</CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {pieChartData.length > 0 ? (
@@ -418,7 +429,7 @@ export function RelatorioMonitoriasTab() {
                   <th className="text-right p-3 font-semibold">Inconforme</th>
                   <th className="text-right p-3 font-semibold">Total</th>
                   <th className="text-right p-3 font-semibold">% Conforme</th>
-                  <th className="text-center p-3 font-semibold">Ações</th>
+                  {isAdmin && <th className="text-center p-3 font-semibold">Ações</th>}
                 </tr>
               </thead>
               <tbody>
@@ -436,42 +447,44 @@ export function RelatorioMonitoriasTab() {
                           <td className="text-right p-3 text-red-600 font-medium">{week.inconforme}</td>
                           <td className="text-right p-3 font-semibold">{total}</td>
                           <td className="text-right p-3 text-blue-600 font-medium">{percentage}%</td>
-                          <td className="p-3">
-                            <div className="flex justify-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  setEditDialog({
-                                    year: week.year,
-                                    month: week.monthIndex,
-                                    weekId: week.id,
-                                    weekNumber: week.weekNumber,
-                                    conforme: week.conforme,
-                                    inconforme: week.inconforme,
-                                  })
-                                }
-                                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  setDeleteWeekDialog({
-                                    year: week.year,
-                                    month: week.monthIndex,
-                                    weekId: week.id,
-                                    weekNumber: week.weekNumber,
-                                  })
-                                }
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
+                          {isAdmin && (
+                            <td className="p-3">
+                              <div className="flex justify-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setEditDialog({
+                                      year: week.year,
+                                      month: week.monthIndex,
+                                      weekId: week.id,
+                                      weekNumber: week.weekNumber,
+                                      conforme: week.conforme,
+                                      inconforme: week.inconforme,
+                                    })
+                                  }
+                                  className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setDeleteWeekDialog({
+                                      year: week.year,
+                                      month: week.monthIndex,
+                                      weekId: week.id,
+                                      weekNumber: week.weekNumber,
+                                    })
+                                  }
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       )
                     })}
@@ -483,12 +496,12 @@ export function RelatorioMonitoriasTab() {
                       <td className="text-right p-3 text-red-600">{filteredTotals.inconforme}</td>
                       <td className="text-right p-3">{filteredTotals.total}</td>
                       <td className="text-right p-3 text-blue-600">{filteredTotals.media}%</td>
-                      <td className="p-3"></td>
+                      {isAdmin && <td className="p-3"></td>}
                     </tr>
                   </>
                 ) : (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={isAdmin ? 8 : 7} className="p-8 text-center text-muted-foreground">
                       Nenhum dado disponível para o período selecionado
                     </td>
                   </tr>
