@@ -410,7 +410,7 @@ export function OperadoresTab() {
                             value={formData.assunto}
                             onValueChange={(value) => setFormData({ ...formData, assunto: value })}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger id="assunto">
                               <SelectValue placeholder="Selecione um assunto" />
                             </SelectTrigger>
                             <SelectContent>
@@ -434,7 +434,7 @@ export function OperadoresTab() {
                             value={formData.carteira}
                             onValueChange={(value) => setFormData({ ...formData, carteira: value })}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger id="carteira">
                               <SelectValue placeholder="Selecione uma carteira" />
                             </SelectTrigger>
                             <SelectContent>
@@ -458,7 +458,7 @@ export function OperadoresTab() {
                             value={formData.turno}
                             onValueChange={(value) => setFormData({ ...formData, turno: value })}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger id="turno">
                               <SelectValue placeholder="Selecione um turno" />
                             </SelectTrigger>
                             <SelectContent>

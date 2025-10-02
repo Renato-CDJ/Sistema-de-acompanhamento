@@ -63,9 +63,9 @@ export default function HomePage() {
       case "operadores":
         return <OperadoresTab filters={appliedFilters} />
       case "relatorio-monitorias":
-        return <RelatorioMonitoriasTab />
+        return <RelatorioMonitoriasTab filters={appliedFilters} />
       case "apuracao-tia":
-        return <ApuracaoTIATab />
+        return <ApuracaoTIATab filters={appliedFilters} />
       default:
         return <OverviewTab filters={appliedFilters} />
     }

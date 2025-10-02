@@ -485,7 +485,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                   value={novoTreinamento.turno}
                   onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, turno: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="turno">
                     <SelectValue placeholder="Selecionar turno" />
                   </SelectTrigger>
                   <SelectContent>
@@ -501,7 +501,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                   value={novoTreinamento.carteira}
                   onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, carteira: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="carteira">
                     <SelectValue placeholder="Selecionar carteira" />
                   </SelectTrigger>
                   <SelectContent>
@@ -539,7 +539,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                   value={novoTreinamento.status}
                   onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, status: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -554,7 +554,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                   value={novoTreinamento.assunto}
                   onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, assunto: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="assunto">
                     <SelectValue placeholder="Selecionar assunto" />
                   </SelectTrigger>
                   <SelectContent>
@@ -703,7 +703,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                     setEditingTreinamento({ ...editingTreinamento, status: value as "Aplicado" | "Pendente" })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="edit-status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
