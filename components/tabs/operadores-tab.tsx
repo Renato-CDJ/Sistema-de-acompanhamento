@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,20 +19,32 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Upload, Download, Plus, Edit, Trash2, FileSpreadsheet, Filter, Users } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useData } from "@/contexts/data-context"
 import { hasPermission } from "@/lib/auth"
 import * as XLSX from "xlsx"
+import { useToast } from "@/hooks/use-toast"
 
 export function OperadoresTab() {
   const { user } = useAuth()
   const isAdmin = hasPermission(user, "edit")
   const [showFilters, setShowFilters] = useState(false)
-  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingOperador, setEditingOperador] = useState<any>(null)
-
+  const [isLoading, setIsLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
 
   const { operadores, addOperador, updateOperador, deleteOperador, importOperadores, assuntos, carteiras } = useData()
   const totalTreinados = operadores.length
@@ -51,17 +62,20 @@ export function OperadoresTab() {
   const [formData, setFormData] = useState({
     nome: "",
     assunto: "",
-    dataConlusao: "",
+    dataConclusao: "",
     carteira: "",
     turno: "",
   })
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deleteOperadorId, setDeleteOperadorId] = useState<number | null>(null)
 
   const treinadosFiltrados = operadores.filter((treinado) => {
     const matchAssunto =
       !filtrosAplicados.assunto || treinado.assunto.toLowerCase().includes(filtrosAplicados.assunto.toLowerCase())
     const matchNome =
       !filtrosAplicados.nome || treinado.nome.toLowerCase().includes(filtrosAplicados.nome.toLowerCase())
-    const matchData = !filtrosAplicados.data || treinado.dataConlusao.includes(filtrosAplicados.data)
+    const matchData = !filtrosAplicados.data || treinado.dataConclusao.includes(filtrosAplicados.data)
 
     return matchAssunto && matchNome && matchData
   })
@@ -76,7 +90,11 @@ export function OperadoresTab() {
 
     // Only accept CSV files
     if (!file.name.endsWith(".csv")) {
-      alert("Por favor, selecione apenas arquivos CSV (.csv)")
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione apenas arquivos CSV (.csv)",
+        variant: "destructive",
+      })
       event.target.value = ""
       return
     }
@@ -112,7 +130,7 @@ export function OperadoresTab() {
             operadoresImportados.push({
               nome: values[0],
               assunto: values[1] || "Treinamento Geral",
-              dataConlusao: dataConlusao || new Date().toISOString().split("T")[0],
+              dataConclusao: dataConlusao || new Date().toISOString().split("T")[0],
               carteira: values[3] || "",
               turno: values[4] || "",
             })
@@ -121,13 +139,25 @@ export function OperadoresTab() {
 
         if (operadoresImportados.length > 0) {
           importOperadores(operadoresImportados)
-          alert(`${operadoresImportados.length} operadores importados com sucesso!`)
+          toast({
+            title: "Sucesso",
+            description: `${operadoresImportados.length} operadores importados com sucesso!`,
+            variant: "success",
+          })
         } else {
-          alert("Nenhum operador válido encontrado no arquivo CSV.")
+          toast({
+            title: "Erro",
+            description: "Nenhum operador válido encontrado no arquivo CSV.",
+            variant: "destructive",
+          })
         }
       } catch (error) {
         console.error("Erro ao importar arquivo:", error)
-        alert("Erro ao processar o arquivo CSV. Verifique o formato e tente novamente.")
+        toast({
+          title: "Erro",
+          description: "Erro ao processar o arquivo CSV. Verifique o formato e tente novamente.",
+          variant: "destructive",
+        })
       }
     }
     reader.readAsText(file)
@@ -156,67 +186,67 @@ export function OperadoresTab() {
     setShowFilters(false)
   }
 
-  const handleAddOperador = () => {
-    if (!formData.nome || !formData.assunto || !formData.dataConlusao || !formData.carteira || !formData.turno) {
-      alert("Por favor, preencha todos os campos obrigatórios.")
-      return
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-    // Split names by line breaks and create multiple operators
-    const nomes = formData.nome
-      .split("\n")
-      .map((nome) => nome.trim())
-      .filter((nome) => nome.length > 0)
-
-    if (nomes.length === 0) {
-      alert("Por favor, digite pelo menos um nome.")
-      return
-    }
-
-    // Add each operator
-    nomes.forEach((nome) => {
-      addOperador({
-        nome,
-        assunto: formData.assunto,
-        dataConlusao: formData.dataConlusao,
-        carteira: formData.carteira,
-        turno: formData.turno,
+    try {
+      if (editingOperador) {
+        await updateOperador(editingOperador.id, formData)
+        toast({
+          title: "Sucesso",
+          description: "Operador atualizado com sucesso!",
+          variant: "success",
+        })
+      } else {
+        await addOperador(formData)
+        toast({
+          title: "Sucesso",
+          description: "Operador criado com sucesso!",
+          variant: "success",
+        })
+      }
+      setIsDialogOpen(false)
+      setFormData({
+        nome: "",
+        assunto: "",
+        dataConclusao: "",
+        carteira: "",
+        turno: "",
       })
-    })
-
-    alert(`${nomes.length} operador(es) adicionado(s) com sucesso!`)
-
-    setFormData({
-      nome: "",
-      assunto: "",
-      dataConlusao: "",
-      carteira: "",
-      turno: "",
-    })
-    setShowAddDialog(false)
-  }
-
-  const handleSaveEdit = () => {
-    if (!formData.nome || !formData.assunto || !formData.dataConlusao || !formData.carteira || !formData.turno) {
-      alert("Por favor, preencha todos os campos obrigatórios.")
-      return
+    } catch (error) {
+      console.error("Erro ao salvar operador:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar operador. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
     }
-
-    updateOperador(editingOperador.id, formData)
-    setEditingOperador(null)
-    setFormData({
-      nome: "",
-      assunto: "",
-      dataConlusao: "",
-      carteira: "",
-      turno: "",
-    })
-    setShowAddDialog(false)
   }
 
-  const handleDeleteOperador = (operadorId: number) => {
-    if (confirm("Tem certeza que deseja excluir este operador?")) {
-      deleteOperador(operadorId)
+  const handleDeleteOperador = async (operadorId: number) => {
+    setDeleteOperadorId(operadorId)
+  }
+
+  const confirmDeleteOperador = async () => {
+    if (deleteOperadorId === null) return
+
+    try {
+      await deleteOperador(deleteOperadorId)
+      toast({
+        title: "Sucesso",
+        description: "Operador excluído com sucesso!",
+        variant: "success",
+      })
+      setDeleteOperadorId(null)
+    } catch (error) {
+      console.error("Erro ao excluir operador:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir operador. Tente novamente.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -225,10 +255,10 @@ export function OperadoresTab() {
       // Create worksheet data
       const worksheetData = [
         ["Nome", "Assunto", "Data Conclusão", "Carteira", "Turno"],
-        ...treinadosFiltrados.map((operador) => [
+        ...operadores.map((operador) => [
           operador.nome,
           operador.assunto,
-          new Date(operador.dataConlusao).toLocaleDateString("pt-BR"),
+          new Date(operador.dataConclusao).toLocaleDateString("pt-BR"),
           operador.carteira,
           operador.turno,
         ]),
@@ -243,7 +273,11 @@ export function OperadoresTab() {
       XLSX.writeFile(workbook, `operadores_treinados_${new Date().toISOString().split("T")[0]}.xlsx`)
     } catch (error) {
       console.error("Erro ao exportar planilha:", error)
-      alert("Erro ao exportar planilha. Tente novamente.")
+      toast({
+        title: "Erro",
+        description: "Erro ao exportar planilha. Tente novamente.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -252,11 +286,11 @@ export function OperadoresTab() {
     setFormData({
       nome: operador.nome,
       assunto: operador.assunto,
-      dataConlusao: operador.dataConlusao,
+      dataConclusao: operador.dataConclusao,
       carteira: operador.carteira,
       turno: operador.turno,
     })
-    setShowAddDialog(true)
+    setIsDialogOpen(true)
   }
 
   return (
@@ -360,7 +394,7 @@ export function OperadoresTab() {
             <div className="flex flex-wrap gap-2">
               {isAdmin && (
                 <>
-                  <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                       <Button className="gap-2">
                         <Plus className="h-4 w-4" />
@@ -473,8 +507,8 @@ export function OperadoresTab() {
                           <Input
                             id="dataConlusao"
                             type="date"
-                            value={formData.dataConlusao}
-                            onChange={(e) => setFormData({ ...formData, dataConlusao: e.target.value })}
+                            value={formData.dataConclusao}
+                            onChange={(e) => setFormData({ ...formData, dataConclusao: e.target.value })}
                           />
                         </div>
                       </div>
@@ -482,12 +516,12 @@ export function OperadoresTab() {
                         <Button
                           variant="outline"
                           onClick={() => {
-                            setShowAddDialog(false)
+                            setIsDialogOpen(false)
                             setEditingOperador(null)
                             setFormData({
                               nome: "",
                               assunto: "",
-                              dataConlusao: "",
+                              dataConclusao: "",
                               carteira: "",
                               turno: "",
                             })
@@ -495,7 +529,7 @@ export function OperadoresTab() {
                         >
                           Cancelar
                         </Button>
-                        <Button onClick={editingOperador ? handleSaveEdit : handleAddOperador}>
+                        <Button onClick={handleSubmit} disabled={isSubmitting}>
                           {editingOperador ? "Salvar Alterações" : "Adicionar Operador"}
                         </Button>
                       </DialogFooter>
@@ -527,21 +561,21 @@ export function OperadoresTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {treinadosFiltrados.length > 0 ? (
-                  treinadosFiltrados.map((treinado) => (
-                    <TableRow key={treinado.id}>
-                      <TableCell className="font-medium">{treinado.nome}</TableCell>
-                      <TableCell>{treinado.assunto}</TableCell>
-                      <TableCell>{new Date(treinado.dataConlusao).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell>{treinado.carteira}</TableCell>
-                      <TableCell>{treinado.turno}</TableCell>
+                {operadores.length > 0 ? (
+                  operadores.map((operador) => (
+                    <TableRow key={operador.id}>
+                      <TableCell className="font-medium">{operador.nome}</TableCell>
+                      <TableCell>{operador.assunto}</TableCell>
+                      <TableCell>{new Date(operador.dataConclusao).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell>{operador.carteira}</TableCell>
+                      <TableCell>{operador.turno}</TableCell>
                       {isAdmin && (
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleEditOperador(treinado)}
+                              onClick={() => handleEditOperador(operador)}
                               className="h-8 w-8 p-0"
                             >
                               <Edit className="h-4 w-4" />
@@ -549,7 +583,7 @@ export function OperadoresTab() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteOperador(treinado.id)}
+                              onClick={() => handleDeleteOperador(operador.id)}
                               className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -570,13 +604,28 @@ export function OperadoresTab() {
             </Table>
           </div>
 
-          {treinadosFiltrados.length > 0 && (
+          {operadores.length > 0 && (
             <div className="mt-4 text-sm text-muted-foreground">
-              Mostrando {treinadosFiltrados.length} de {totalTreinados} operadores treinados
+              Mostrando {operadores.length} de {totalTreinados} operadores treinados
             </div>
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteOperadorId !== null} onOpenChange={() => setDeleteOperadorId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este operador? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteOperador}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

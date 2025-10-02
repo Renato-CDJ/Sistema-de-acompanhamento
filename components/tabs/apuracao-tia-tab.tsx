@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -31,6 +30,15 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/auth"
+import { useToast } from "@/hooks/use-toast"
+
+type ApuracaoTIA = {
+  id: string
+  date: string
+  analisados: number
+  quantidade: number
+  totalPercent: number
+}
 
 export function ApuracaoTIATab() {
   const { user } = useAuth()
@@ -44,20 +52,24 @@ export function ApuracaoTIATab() {
     quantidade: "",
   })
 
-  const [editingEntry, setEditingEntry] = useState<{
-    id: string
-    date: string
-    analisados: number
-    quantidade: number
-  } | null>(null)
+  const [apuracoes, setApuracoes] = useState<ApuracaoTIA[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingApuracao, setEditingApuracao] = useState<ApuracaoTIA | null>(null)
 
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { toast } = useToast()
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.date || !formData.analisados || !formData.quantidade) {
-      alert("Por favor, preencha todos os campos")
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha todos os campos",
+        variant: "destructive",
+      })
       return
     }
 
@@ -65,39 +77,83 @@ export function ApuracaoTIATab() {
     const quantidade = Number.parseInt(formData.quantidade)
 
     if (isNaN(analisados) || isNaN(quantidade) || quantidade === 0) {
-      alert("Por favor, insira valores válidos")
+      toast({
+        title: "Erro",
+        description: "Por favor, insira valores válidos",
+        variant: "destructive",
+      })
       return
     }
 
-    addTIAEntry({
-      date: formData.date,
-      analisados,
-      quantidade,
-    })
-
-    setFormData({
-      date: "",
-      analisados: "",
-      quantidade: "",
-    })
+    try {
+      if (editingApuracao) {
+        await updateTIAEntry(editingApuracao.id, {
+          date: formData.date,
+          analisados,
+          quantidade,
+        })
+        toast({
+          title: "Sucesso",
+          description: "Apuração atualizada com sucesso!",
+          variant: "success",
+        })
+      } else {
+        await addTIAEntry({
+          date: formData.date,
+          analisados,
+          quantidade,
+        })
+        toast({
+          title: "Sucesso",
+          description: "Apuração criada com sucesso!",
+          variant: "success",
+        })
+      }
+      setFormData({
+        date: "",
+        analisados: "",
+        quantidade: "",
+      })
+    } catch (error) {
+      console.error("Erro ao salvar apuração:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar apuração. Tente novamente.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleEdit = () => {
-    if (!editingEntry) return
+    if (!editingApuracao) return
 
-    updateTIAEntry(editingEntry.id, {
-      date: editingEntry.date,
-      analisados: editingEntry.analisados,
-      quantidade: editingEntry.quantidade,
+    updateTIAEntry(editingApuracao.id, {
+      date: editingApuracao.date,
+      analisados: editingApuracao.analisados,
+      quantidade: editingApuracao.quantidade,
     })
 
-    setEditingEntry(null)
+    setEditingApuracao(null)
   }
 
-  const handleDelete = () => {
-    if (deleteId) {
-      deleteTIAEntry(deleteId)
+  const handleDelete = async () => {
+    if (!deleteId) return
+
+    try {
+      await deleteTIAEntry(deleteId)
+      toast({
+        title: "Sucesso",
+        description: "Apuração excluída com sucesso!",
+        variant: "success",
+      })
       setDeleteId(null)
+    } catch (error) {
+      console.error("Erro ao excluir apuração:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir apuração. Tente novamente.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -234,11 +290,12 @@ export function ApuracaoTIATab() {
                               variant="ghost"
                               size="icon"
                               onClick={() =>
-                                setEditingEntry({
+                                setEditingApuracao({
                                   id: entry.id,
                                   date: entry.date,
                                   analisados: entry.analisados,
                                   quantidade: entry.quantidade,
+                                  totalPercent: entry.totalPercent,
                                 })
                               }
                             >
@@ -260,21 +317,21 @@ export function ApuracaoTIATab() {
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingEntry} onOpenChange={(open) => !open && setEditingEntry(null)}>
+      <Dialog open={!!editingApuracao} onOpenChange={(open) => !open && setEditingApuracao(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Registro TIA</DialogTitle>
             <DialogDescription>Atualize os dados do registro</DialogDescription>
           </DialogHeader>
-          {editingEntry && (
+          {editingApuracao && (
             <div className="space-y-4">
               <div>
                 <Label htmlFor="edit-date">Data</Label>
                 <Input
                   id="edit-date"
                   type="date"
-                  value={editingEntry.date}
-                  onChange={(e) => setEditingEntry({ ...editingEntry, date: e.target.value })}
+                  value={editingApuracao.date}
+                  onChange={(e) => setEditingApuracao({ ...editingApuracao, date: e.target.value })}
                 />
               </div>
               <div>
@@ -283,8 +340,10 @@ export function ApuracaoTIATab() {
                   id="edit-analisados"
                   type="number"
                   min="0"
-                  value={editingEntry.analisados}
-                  onChange={(e) => setEditingEntry({ ...editingEntry, analisados: Number.parseInt(e.target.value) })}
+                  value={editingApuracao.analisados}
+                  onChange={(e) =>
+                    setEditingApuracao({ ...editingApuracao, analisados: Number.parseInt(e.target.value) })
+                  }
                 />
               </div>
               <div>
@@ -293,14 +352,16 @@ export function ApuracaoTIATab() {
                   id="edit-quantidade"
                   type="number"
                   min="1"
-                  value={editingEntry.quantidade}
-                  onChange={(e) => setEditingEntry({ ...editingEntry, quantidade: Number.parseInt(e.target.value) })}
+                  value={editingApuracao.quantidade}
+                  onChange={(e) =>
+                    setEditingApuracao({ ...editingApuracao, quantidade: Number.parseInt(e.target.value) })
+                  }
                 />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingEntry(null)}>
+            <Button variant="outline" onClick={() => setEditingApuracao(null)}>
               Cancelar
             </Button>
             <Button onClick={handleEdit}>Salvar</Button>

@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,9 +11,20 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 import { Eye, EyeOff, Calendar, BarChart3, Edit, Trash2, ChevronDown } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/auth"
 import { useData } from "@/contexts/data-context"
+import { useToast } from "@/hooks/use-toast"
 
 interface QuadroTabProps {
   filters?: {
@@ -20,6 +33,19 @@ interface QuadroTabProps {
     carteira?: string
     secao?: string
   }
+}
+
+interface Quadro {
+  id: number
+  date: string
+  total: number
+  ativos: number
+  ferias: number
+  afastamento: number
+  desaparecidos: number
+  inss: number
+  turno: string
+  secao: string
 }
 
 export function QuadroTab({ filters }: QuadroTabProps) {
@@ -73,6 +99,16 @@ export function QuadroTab({ filters }: QuadroTabProps) {
 
   const [editingCarteiraStats, setEditingCarteiraStats] = useState<number | null>(null)
 
+  const [quadros, setQuadros] = useState<Quadro[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingQuadro, setEditingQuadro] = useState<Quadro | null>(null)
+  const { toast } = useToast()
+
+  const [deleteCarteiraId, setDeleteCarteiraId] = useState<string | null>(null)
+  const [deleteStatsId, setDeleteStatsId] = useState<number | null>(null)
+  const [deleteDadosId, setDeleteDadosId] = useState<number | null>(null)
+
   const filteredDadosDiarios = dadosDiarios.filter((dados) => {
     let matchesSecao = true
     const currentSecao = selectedOption === "caixa" ? "Caixa" : "Cobrança"
@@ -125,14 +161,22 @@ export function QuadroTab({ filters }: QuadroTabProps) {
 
   const handleAddCarteira = () => {
     if (!newCarteira.trim()) {
-      alert("Por favor, digite o nome da carteira")
+      toast({
+        title: "Erro",
+        description: "Por favor, digite o nome da carteira",
+        variant: "destructive",
+      })
       return
     }
 
     addCarteira(newCarteira)
     setNewCarteira("")
     setIsCarteiraDialogOpen(false)
-    alert("Carteira adicionada com sucesso!")
+    toast({
+      title: "Sucesso",
+      description: "Carteira adicionada com sucesso!",
+      variant: "success",
+    })
   }
 
   const handleEditCarteira = (carteira) => {
@@ -143,7 +187,11 @@ export function QuadroTab({ filters }: QuadroTabProps) {
 
   const handleUpdateCarteira = () => {
     if (!newCarteira.trim()) {
-      alert("Por favor, digite o nome da carteira")
+      toast({
+        title: "Erro",
+        description: "Por favor, digite o nome da carteira",
+        variant: "destructive",
+      })
       return
     }
 
@@ -154,13 +202,26 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     setEditingCarteira(null)
     setNewCarteira("")
     setIsCarteiraDialogOpen(false)
-    alert("Carteira atualizada com sucesso!")
+    toast({
+      title: "Sucesso",
+      description: "Carteira atualizada com sucesso!",
+      variant: "success",
+    })
   }
 
   const handleDeleteCarteira = (carteiraId) => {
-    if (confirm("Tem certeza que deseja excluir esta carteira?")) {
-      deleteCarteira(carteiraId)
-      alert("Carteira excluída com sucesso!")
+    setDeleteCarteiraId(carteiraId)
+  }
+
+  const confirmDeleteCarteira = () => {
+    if (deleteCarteiraId) {
+      deleteCarteira(deleteCarteiraId)
+      toast({
+        title: "Sucesso",
+        description: "Carteira excluída com sucesso!",
+        variant: "success",
+      })
+      setDeleteCarteiraId(null)
     }
   }
 
@@ -193,12 +254,20 @@ export function QuadroTab({ filters }: QuadroTabProps) {
 
   const handleSaveCarteiraStats = () => {
     if (!carteiraStatsData.date) {
-      alert("Por favor, selecione uma data")
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione uma data",
+        variant: "destructive",
+      })
       return
     }
 
     if (!carteiraStatsData.carteira) {
-      alert("Por favor, selecione uma carteira")
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione uma carteira",
+        variant: "destructive",
+      })
       return
     }
 
@@ -211,7 +280,11 @@ export function QuadroTab({ filters }: QuadroTabProps) {
         faltas: carteiraStatsData.faltas,
         turno: carteiraStatsData.turno,
       })
-      alert("Estatísticas por carteira atualizadas com sucesso!")
+      toast({
+        title: "Sucesso",
+        description: "Estatísticas por carteira atualizadas com sucesso!",
+        variant: "success",
+      })
       setEditingCarteiraStats(null)
     } else {
       const newStat = {
@@ -224,7 +297,11 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       }
 
       addEstatisticasCarteira(newStat)
-      alert("Estatísticas por carteira salvas com sucesso!")
+      toast({
+        title: "Sucesso",
+        description: "Estatísticas por carteira salvas com sucesso!",
+        variant: "success",
+      })
     }
 
     setCarteiraStatsData({
@@ -251,22 +328,19 @@ export function QuadroTab({ filters }: QuadroTabProps) {
   }
 
   const handleDeleteCarteiraStats = (id: number) => {
-    if (confirm("Tem certeza que deseja excluir esta estatística?")) {
-      deleteEstatisticasCarteira(id)
-      alert("Estatística excluída com sucesso!")
-    }
+    setDeleteStatsId(id)
   }
 
-  const handleCancelEditCarteiraStats = () => {
-    setEditingCarteiraStats(null)
-    setCarteiraStatsData({
-      date: "",
-      carteira: "",
-      total: 0,
-      presentes: 0,
-      faltas: 0,
-      turno: "geral",
-    })
+  const confirmDeleteStats = () => {
+    if (deleteStatsId !== null) {
+      deleteEstatisticasCarteira(deleteStatsId)
+      toast({
+        title: "Sucesso",
+        description: "Estatística excluída com sucesso!",
+        variant: "success",
+      })
+      setDeleteStatsId(null)
+    }
   }
 
   const handleEditDadosDiarios = (record: any) => {
@@ -285,15 +359,28 @@ export function QuadroTab({ filters }: QuadroTabProps) {
   }
 
   const handleDeleteDadosDiarios = (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este registro?")) {
-      deleteDadosDiarios(id)
-      alert("Registro excluído com sucesso!")
+    setDeleteDadosId(id)
+  }
+
+  const confirmDeleteDados = () => {
+    if (deleteDadosId !== null) {
+      deleteDadosDiarios(deleteDadosId)
+      toast({
+        title: "Sucesso",
+        description: "Registro excluído com sucesso!",
+        variant: "success",
+      })
+      setDeleteDadosId(null)
     }
   }
 
   const handleSaveDailyData = () => {
     if (!dailyData.date) {
-      alert("Por favor, selecione uma data")
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione uma data",
+        variant: "destructive",
+      })
       return
     }
 
@@ -301,11 +388,19 @@ export function QuadroTab({ filters }: QuadroTabProps) {
 
     if (editingDailyData !== null) {
       updateDadosDiarios(editingDailyData, { ...dailyData, secao })
-      alert("Dados diários atualizados com sucesso!")
+      toast({
+        title: "Sucesso",
+        description: "Dados diários atualizados com sucesso!",
+        variant: "success",
+      })
       setEditingDailyData(null)
     } else {
       addDadosDiarios({ ...dailyData, secao })
-      alert("Dados diários salvos com sucesso!")
+      toast({
+        title: "Sucesso",
+        description: "Dados diários salvos com sucesso!",
+        variant: "success",
+      })
     }
 
     setDailyData({
@@ -316,6 +411,18 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       afastamento: 0,
       desaparecidos: 0,
       inss: 0,
+      turno: "geral",
+    })
+  }
+
+  const handleCancelEditCarteiraStats = () => {
+    setEditingCarteiraStats(null)
+    setCarteiraStatsData({
+      date: "",
+      carteira: "",
+      total: 0,
+      presentes: 0,
+      faltas: 0,
       turno: "geral",
     })
   }
@@ -358,6 +465,59 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     return matchesDataInicio && matchesDataFim && matchesCarteira && matchesTurno
   })
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    try {
+      if (editingQuadro) {
+        await updateDadosDiarios(editingQuadro.id, dailyData)
+        toast({
+          title: "Sucesso",
+          description: "Quadro atualizado com sucesso!",
+          variant: "success",
+        })
+      } else {
+        await addDadosDiarios(dailyData)
+        toast({
+          title: "Sucesso",
+          description: "Quadro criado com sucesso!",
+          variant: "success",
+        })
+      }
+      setIsDialogOpen(false)
+    } catch (error) {
+      console.error("Erro ao salvar quadro:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar quadro. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Tem certeza que deseja excluir este quadro?")) return
+
+    try {
+      await deleteDadosDiarios(id)
+      toast({
+        title: "Sucesso",
+        description: "Quadro excluído com sucesso!",
+        variant: "success",
+      })
+    } catch (error) {
+      console.error("Erro ao excluir quadro:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir quadro. Tente novamente.",
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -367,7 +527,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
               Opção
             </Label>
             <Select value={selectedOption} onValueChange={setSelectedOption}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40" id="option-select">
                 <SelectValue />
                 <ChevronDown className="h-4 w-4 opacity-50" />
               </SelectTrigger>
@@ -382,7 +542,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
               Turno
             </Label>
             <Select value={selectedTurno} onValueChange={setSelectedTurno}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-32" id="turno-select">
                 <SelectValue />
                 <ChevronDown className="h-4 w-4 opacity-50" />
               </SelectTrigger>
@@ -548,7 +708,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                         value={carteiraStatsData.carteira}
                         onValueChange={(value) => handleCarteiraStatsChange("carteira", value)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="carteira-stats-carteira">
                           <SelectValue placeholder="Selecione a carteira" />
                         </SelectTrigger>
                         <SelectContent>
@@ -572,7 +732,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                         value={carteiraStatsData.turno}
                         onValueChange={(value) => handleCarteiraStatsChange("turno", value)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="carteira-stats-turno">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -698,7 +858,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                 <div>
                   <Label htmlFor="daily-turno">Turno</Label>
                   <Select value={dailyData.turno} onValueChange={(value) => handleDailyDataChange("turno", value)}>
-                    <SelectTrigger>
+                    <SelectTrigger id="daily-turno">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -935,6 +1095,51 @@ export function QuadroTab({ filters }: QuadroTabProps) {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={deleteCarteiraId !== null} onOpenChange={() => setDeleteCarteiraId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta carteira? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteCarteira}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteStatsId !== null} onOpenChange={() => setDeleteStatsId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta estatística? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteStats}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteDadosId !== null} onOpenChange={() => setDeleteDadosId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteDados}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -14,6 +14,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
@@ -40,6 +50,8 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
   const [showCharts, setShowCharts] = useState(true)
   const [editingCarteira, setEditingCarteira] = useState<any>(null)
   const [editingTreinamento, setEditingTreinamento] = useState<Treinamento | null>(null)
+  const [deleteTreinamentoId, setDeleteTreinamentoId] = useState<number | null>(null)
+  const [deleteAssuntoIndex, setDeleteAssuntoIndex] = useState<number | null>(null)
 
   const {
     carteiras,
@@ -192,14 +204,27 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
     }
   }
 
-  const handleDeleteTreinamento = (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este treinamento?")) {
-      deleteTreinamento(id)
+  const confirmDeleteTreinamento = () => {
+    if (deleteTreinamentoId !== null) {
+      deleteTreinamento(deleteTreinamentoId)
       toast({
         title: "Sucesso!",
         description: "Treinamento removido com sucesso.",
         variant: "default",
       })
+      setDeleteTreinamentoId(null)
+    }
+  }
+
+  const confirmDeleteAssunto = () => {
+    if (deleteAssuntoIndex !== null) {
+      deleteAssunto(deleteAssuntoIndex)
+      toast({
+        title: "Sucesso!",
+        description: "Assunto removido com sucesso.",
+        variant: "default",
+      })
+      setDeleteAssuntoIndex(null)
     }
   }
 
@@ -367,16 +392,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => {
-                                    if (confirm(`Tem certeza que deseja excluir o assunto "${assunto}"?`)) {
-                                      deleteAssunto(index)
-                                      toast({
-                                        title: "Sucesso!",
-                                        description: "Assunto removido com sucesso.",
-                                        variant: "default",
-                                      })
-                                    }
-                                  }}
+                                  onClick={() => setDeleteAssuntoIndex(index)}
                                   className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -639,7 +655,7 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteTreinamento(treinamento.id)}
+                            onClick={() => setDeleteTreinamentoId(treinamento.id)}
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -719,6 +735,37 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* AlertDialog for delete confirmations */}
+      <AlertDialog open={deleteTreinamentoId !== null} onOpenChange={() => setDeleteTreinamentoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este treinamento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteTreinamento}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteAssuntoIndex !== null} onOpenChange={() => setDeleteAssuntoIndex(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este assunto? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteAssunto}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

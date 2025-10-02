@@ -19,9 +19,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/auth"
 import { useData } from "@/contexts/data-context"
+import { useToast } from "@/hooks/use-toast"
 
 const motivosDesligamento = [
   "Pedido de Demissão",
@@ -46,13 +57,13 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
   const { user } = useAuth()
   const isAdmin = hasPermission(user, "edit")
   const {
-    desligamentos,
+    desligamentos: dataDesligamentos,
     addDesligamento,
     updateDesligamento,
     deleteDesligamento,
     getDesligamentosStats,
     carteiras,
-    motivosDesligamento,
+    motivosDesligamento: dataMotivosDesligamento,
     addMotivoDesligamento,
     updateMotivoDesligamento,
     deleteMotivoDesligamento,
@@ -83,6 +94,12 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
 
   // Estado para edição de desligamentos
   const [editingDesligamento, setEditingDesligamento] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const { toast } = useToast()
+
+  const [deleteDesligamentoId, setDeleteDesligamentoId] = useState<number | null>(null)
+  const [deleteMotivoId, setDeleteMotivoId] = useState<number | null>(null)
 
   const handleEditDesligamento = (desligamento: any) => {
     setEditingDesligamento(desligamento)
@@ -99,58 +116,124 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
     })
   }
 
-  const handleDeleteDesligamento = (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este registro de desligamento?")) {
-      deleteDesligamento(id)
-      alert("Desligamento excluído com sucesso!")
-    }
+  const handleDeleteDesligamento = async (id: number) => {
+    setDeleteDesligamentoId(id)
   }
 
-  const handleAddDesligamento = () => {
-    if (novoDesligamento.nome && novoDesligamento.carteira && novoDesligamento.motivo && novoDesligamento.data) {
-      if (editingDesligamento) {
-        // Editando desligamento existente
-        updateDesligamento(editingDesligamento.id, novoDesligamento)
-        alert("Desligamento atualizado com sucesso!")
-      } else {
-        // Adicionando novo desligamento
-        addDesligamento(novoDesligamento)
-        alert("Desligamento registrado com sucesso!")
-      }
+  const confirmDeleteDesligamento = async () => {
+    if (deleteDesligamentoId === null) return
 
-      console.log("[v0] Desligamento processado:", novoDesligamento)
-
-      // Reset form
-      setNovoDesligamento({
-        nome: "",
-        carteira: "",
-        turno: "",
-        data: "",
-        motivo: "",
-        avisoPrevia: "Com",
-        responsavel: "",
-        veioAgencia: "Não",
-        observacao: "",
+    try {
+      await deleteDesligamento(deleteDesligamentoId)
+      toast({
+        title: "Sucesso",
+        description: "Desligamento excluído com sucesso!",
+        variant: "success",
       })
-      setEditingDesligamento(null)
-    } else {
-      alert("Por favor, preencha todos os campos obrigatórios (Nome, Carteira, Motivo e Data)")
+      setDeleteDesligamentoId(null)
+    } catch (error) {
+      console.error("Erro ao excluir desligamento:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir desligamento. Tente novamente.",
+        variant: "destructive",
+      })
     }
   }
 
-  const handleAddMotivo = () => {
-    if (novoMotivo.trim()) {
-      if (editingMotivo) {
-        updateMotivoDesligamento(editingMotivo.id, novoMotivo.trim())
-        alert("Motivo atualizado com sucesso!")
+  const handleAddDesligamento = async () => {
+    setIsLoading(true)
+    try {
+      if (novoDesligamento.nome && novoDesligamento.carteira && novoDesligamento.motivo && novoDesligamento.data) {
+        if (editingDesligamento) {
+          // Editando desligamento existente
+          await updateDesligamento(editingDesligamento.id, novoDesligamento)
+          toast({
+            title: "Sucesso",
+            description: "Desligamento atualizado com sucesso!",
+            variant: "success",
+          })
+        } else {
+          // Adicionando novo desligamento
+          await addDesligamento(novoDesligamento)
+          toast({
+            title: "Sucesso",
+            description: "Desligamento registrado com sucesso!",
+            variant: "success",
+          })
+        }
+
+        console.log("[v0] Desligamento processado:", novoDesligamento)
+
+        // Reset form
+        setNovoDesligamento({
+          nome: "",
+          carteira: "",
+          turno: "",
+          data: "",
+          motivo: "",
+          avisoPrevia: "Com",
+          responsavel: "",
+          veioAgencia: "Não",
+          observacao: "",
+        })
+        setEditingDesligamento(null)
       } else {
-        addMotivoDesligamento(novoMotivo.trim())
-        alert("Motivo adicionado com sucesso!")
+        toast({
+          title: "Erro",
+          description: "Por favor, preencha todos os campos obrigatórios (Nome, Carteira, Motivo e Data)",
+          variant: "destructive",
+        })
       }
-      setNovoMotivo("")
-      setEditingMotivo(null)
-    } else {
-      alert("Por favor, insira um nome para o motivo")
+    } catch (error) {
+      console.error("Erro ao salvar desligamento:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar desligamento. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAddMotivo = async () => {
+    setIsLoading(true)
+    try {
+      if (novoMotivo.trim()) {
+        if (editingMotivo) {
+          await updateMotivoDesligamento(editingMotivo.id, novoMotivo.trim())
+          toast({
+            title: "Sucesso",
+            description: "Motivo atualizado com sucesso!",
+            variant: "success",
+          })
+        } else {
+          await addMotivoDesligamento(novoMotivo.trim())
+          toast({
+            title: "Sucesso",
+            description: "Motivo adicionado com sucesso!",
+            variant: "success",
+          })
+        }
+        setNovoMotivo("")
+        setEditingMotivo(null)
+      } else {
+        toast({
+          title: "Erro",
+          description: "Por favor, insira um nome para o motivo",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Erro ao salvar motivo:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar motivo. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -159,10 +242,28 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
     setNovoMotivo(motivo.nome)
   }
 
-  const handleDeleteMotivo = (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este motivo de desligamento?")) {
-      deleteMotivoDesligamento(id)
-      alert("Motivo excluído com sucesso!")
+  const handleDeleteMotivo = async (id: number) => {
+    setDeleteMotivoId(id)
+  }
+
+  const confirmDeleteMotivo = async () => {
+    if (deleteMotivoId === null) return
+
+    try {
+      await deleteMotivoDesligamento(deleteMotivoId)
+      toast({
+        title: "Sucesso",
+        description: "Motivo excluído com sucesso!",
+        variant: "success",
+      })
+      setDeleteMotivoId(null)
+    } catch (error) {
+      console.error("Erro ao excluir motivo:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir motivo. Tente novamente.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -176,17 +277,17 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
     { name: "Sem Aviso Prévio", value: stats.semAvisoPrevia, color: "#ef4444" },
   ].filter((item) => item.value > 0)
 
-  const pieDataMotivos = motivosDesligamento
+  const pieDataMotivos = dataMotivosDesligamento
     .map((motivo, index) => ({
       name: motivo.nome,
-      value: desligamentos.filter((d) => d.motivo === motivo.nome).length,
-      color: `hsl(${(index * 360) / motivosDesligamento.length}, 70%, 50%)`,
+      value: dataDesligamentos.filter((d) => d.motivo === motivo.nome).length,
+      color: `hsl(${(index * 360) / dataMotivosDesligamento.length}, 70%, 50%)`,
     }))
     .filter((item) => item.value > 0)
 
   const carteiraDesligamentos = carteiras.map((carteira) => ({
     carteira: carteira.name,
-    quantidade: desligamentos.filter((d) => d.carteira === carteira.name).length,
+    quantidade: dataDesligamentos.filter((d) => d.carteira === carteira.name).length,
   }))
 
   return (
@@ -246,7 +347,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
         </Card>
       </div>
 
-      {desligamentos.length > 0 && (
+      {dataDesligamentos.length > 0 && (
         <>
           {/* Análise de Motivos */}
           <Card>
@@ -323,7 +424,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
       )}
 
       {/* Charts Toggle */}
-      {desligamentos.length > 0 && (
+      {dataDesligamentos.length > 0 && (
         <div className="flex justify-end">
           <Button variant="outline" onClick={() => setShowCharts(!showCharts)} className="gap-2">
             {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -333,7 +434,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
       )}
 
       {/* Charts */}
-      {showCharts && desligamentos.length > 0 && pieDataAvisoPrevia.length > 0 && (
+      {showCharts && dataDesligamentos.length > 0 && pieDataAvisoPrevia.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -444,14 +545,14 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {motivosDesligamento.length === 0 ? (
+                          {dataMotivosDesligamento.length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={2} className="text-center text-muted-foreground">
                                 Nenhum motivo cadastrado
                               </TableCell>
                             </TableRow>
                           ) : (
-                            motivosDesligamento.map((motivo) => (
+                            dataMotivosDesligamento.map((motivo) => (
                               <TableRow key={motivo.id}>
                                 <TableCell className="font-medium">{motivo.nome}</TableCell>
                                 <TableCell>
@@ -492,7 +593,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                   value={novoDesligamento.carteira}
                   onValueChange={(value) => setNovoDesligamento({ ...novoDesligamento, carteira: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="carteira">
                     <SelectValue placeholder="Selecionar carteira" />
                   </SelectTrigger>
                   <SelectContent>
@@ -516,7 +617,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                   value={novoDesligamento.turno}
                   onValueChange={(value) => setNovoDesligamento({ ...novoDesligamento, turno: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="turno">
                     <SelectValue placeholder="Selecionar turno" />
                   </SelectTrigger>
                   <SelectContent>
@@ -541,16 +642,16 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                   value={novoDesligamento.motivo}
                   onValueChange={(value) => setNovoDesligamento({ ...novoDesligamento, motivo: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="motivo">
                     <SelectValue placeholder="Selecionar motivo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {motivosDesligamento.length === 0 ? (
+                    {dataMotivosDesligamento.length === 0 ? (
                       <div className="px-2 py-1.5 text-sm text-muted-foreground">
                         Nenhum motivo cadastrado. Clique em "Gerenciar Motivos" para adicionar.
                       </div>
                     ) : (
-                      motivosDesligamento.map((motivo) => (
+                      dataMotivosDesligamento.map((motivo) => (
                         <SelectItem key={motivo.id} value={motivo.nome}>
                           {motivo.nome}
                         </SelectItem>
@@ -567,7 +668,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                     setNovoDesligamento({ ...novoDesligamento, avisoPrevia: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="aviso-previa">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -593,7 +694,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                     setNovoDesligamento({ ...novoDesligamento, veioAgencia: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="veio-agencia">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -658,7 +759,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                 className="w-40"
               />
               <Select value={carteiraFilter} onValueChange={setCarteiraFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-40" id="carteira-filter">
                   <SelectValue placeholder="Filtrar carteira" />
                 </SelectTrigger>
                 <SelectContent>
@@ -687,7 +788,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
           <CardDescription>Histórico completo de desligamentos</CardDescription>
         </CardHeader>
         <CardContent>
-          {desligamentos.length === 0 ? (
+          {dataDesligamentos.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>Nenhum desligamento registrado ainda.</p>
               <p className="text-sm">Use o formulário acima para registrar desligamentos.</p>
@@ -710,7 +811,7 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {desligamentos.map((desligamento) => (
+                  {dataDesligamentos.map((desligamento) => (
                     <TableRow key={desligamento.id}>
                       <TableCell className="font-medium">{desligamento.nome}</TableCell>
                       <TableCell>
@@ -757,6 +858,37 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* AlertDialog for delete confirmations */}
+      <AlertDialog open={deleteDesligamentoId !== null} onOpenChange={() => setDeleteDesligamentoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este desligamento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteDesligamento}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteMotivoId !== null} onOpenChange={() => setDeleteMotivoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este motivo de desligamento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteMotivo}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

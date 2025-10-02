@@ -135,7 +135,7 @@ export function DashboardLayout({
             value={filters?.turno || "Todos os turnos"}
             onValueChange={(value) => handleFilterChange("turno", value)}
           >
-            <SelectTrigger>
+            <SelectTrigger id="filter-turno">
               <SelectValue placeholder="Todos os turnos" />
             </SelectTrigger>
             <SelectContent>
@@ -153,7 +153,7 @@ export function DashboardLayout({
             value={filters?.carteira || "Todas as carteiras"}
             onValueChange={(value) => handleFilterChange("carteira", value)}
           >
-            <SelectTrigger>
+            <SelectTrigger id="filter-carteira">
               <SelectValue placeholder="Todas as carteiras" />
             </SelectTrigger>
             <SelectContent>
@@ -177,7 +177,7 @@ export function DashboardLayout({
             value={filters?.secao || "Todas as seções"}
             onValueChange={(value) => handleFilterChange("secao", value)}
           >
-            <SelectTrigger>
+            <SelectTrigger id="filter-secao">
               <SelectValue placeholder="Todas as seções" />
             </SelectTrigger>
             <SelectContent>
@@ -200,7 +200,7 @@ export function DashboardLayout({
                   value={filters?.status || "Todos os status"}
                   onValueChange={(value) => handleFilterChange("status", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="filter-status">
                     <SelectValue placeholder="Todos os status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -222,7 +222,7 @@ export function DashboardLayout({
                   value={filters?.motivo || "Todos os motivos"}
                   onValueChange={(value) => handleFilterChange("motivo", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="filter-motivo">
                     <SelectValue placeholder="Todos os motivos" />
                   </SelectTrigger>
                   <SelectContent>
