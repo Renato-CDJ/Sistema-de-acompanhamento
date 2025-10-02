@@ -84,6 +84,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     desaparecidos: 0,
     inss: 0,
     turno: "geral",
+    secao: "",
   })
 
   const [editingDailyData, setEditingDailyData] = useState<number | null>(null)
@@ -344,6 +345,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
   }
 
   const handleEditDadosDiarios = (record: any) => {
+    console.log("[v0] Editing dados diarios:", record)
     setEditingDailyData(record.id)
     setDailyData({
       date: record.date,
@@ -354,6 +356,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       desaparecidos: record.desaparecidos,
       inss: record.inss,
       turno: record.turno,
+      secao: record.secao,
     })
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
@@ -384,9 +387,10 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       return
     }
 
-    const secao = selectedOption === "caixa" ? "Caixa" : "Cobrança"
+    const secao = editingDailyData !== null ? dailyData.secao : selectedOption === "caixa" ? "Caixa" : "Cobrança"
 
     if (editingDailyData !== null) {
+      console.log("[v0] Updating dados diarios with secao:", secao)
       updateDadosDiarios(editingDailyData, { ...dailyData, secao })
       toast({
         title: "Sucesso",
@@ -395,6 +399,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       })
       setEditingDailyData(null)
     } else {
+      console.log("[v0] Adding new dados diarios with secao:", secao)
       addDadosDiarios({ ...dailyData, secao })
       toast({
         title: "Sucesso",
@@ -412,10 +417,12 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       desaparecidos: 0,
       inss: 0,
       turno: "geral",
+      secao: "",
     })
   }
 
   const handleCancelEditCarteiraStats = () => {
+    console.log("[v0] Canceling carteira stats edit")
     setEditingCarteiraStats(null)
     setCarteiraStatsData({
       date: "",
@@ -428,6 +435,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
   }
 
   const handleCancelEditDailyData = () => {
+    console.log("[v0] Canceling daily data edit")
     setEditingDailyData(null)
     setDailyData({
       date: "",
@@ -438,6 +446,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       desaparecidos: 0,
       inss: 0,
       turno: "geral",
+      secao: "",
     })
   }
 
@@ -778,20 +787,21 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                         onChange={(e) => handleCarteiraStatsChange("faltas", Number(e.target.value))}
                       />
                     </div>
-                    <div className="flex items-end gap-2">
-                      {editingCarteiraStats !== null && (
-                        <Button
-                          variant="outline"
-                          className="flex-1 bg-transparent"
-                          onClick={handleCancelEditCarteiraStats}
-                        >
-                          Cancelar
-                        </Button>
-                      )}
-                      <Button className="flex-1" onClick={handleSaveCarteiraStats}>
-                        {editingCarteiraStats !== null ? "Atualizar" : "Salvar"}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2 justify-end">
+                    {editingCarteiraStats !== null && (
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto bg-transparent"
+                        onClick={handleCancelEditCarteiraStats}
+                      >
+                        Cancelar
                       </Button>
-                    </div>
+                    )}
+                    <Button className="w-full sm:w-auto" onClick={handleSaveCarteiraStats}>
+                      {editingCarteiraStats !== null ? "Atualizar" : "Salvar"}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -839,12 +849,19 @@ export function QuadroTab({ filters }: QuadroTabProps) {
             </CardTitle>
             <CardDescription>
               {editingDailyData !== null
-                ? `Atualize os números diários para ${selectedOption === "caixa" ? "Caixa" : "Cobrança"}`
+                ? `Atualize os números diários para ${dailyData.secao || (selectedOption === "caixa" ? "Caixa" : "Cobrança")}`
                 : `Registre os números diários para ${selectedOption === "caixa" ? "Caixa" : "Cobrança"}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {editingDailyData !== null && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    Editando registro da seção: <span className="font-bold">{dailyData.secao}</span>
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div>
                   <Label htmlFor="daily-date">Data</Label>
@@ -934,16 +951,21 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                     onChange={(e) => handleDailyDataChange("inss", Number(e.target.value))}
                   />
                 </div>
-                <div className="flex items-end gap-2">
-                  {editingDailyData !== null && (
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleCancelEditDailyData}>
-                      Cancelar
-                    </Button>
-                  )}
-                  <Button className="flex-1" onClick={handleSaveDailyData}>
-                    {editingDailyData !== null ? "Atualizar" : "Salvar"}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 justify-end">
+                {editingDailyData !== null && (
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto bg-transparent"
+                    onClick={handleCancelEditDailyData}
+                  >
+                    Cancelar
                   </Button>
-                </div>
+                )}
+                <Button className="w-full sm:w-auto" onClick={handleSaveDailyData}>
+                  {editingDailyData !== null ? "Atualizar" : "Salvar"}
+                </Button>
               </div>
             </div>
           </CardContent>
