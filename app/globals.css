@@ -2,84 +2,120 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant orange (&:is(.orange *));
 
 :root {
-  /* Updated theme to white and orange for light mode */
+  /* Light theme - white and black */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.65 0.18 45); /* Orange primary */
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  /* Dark theme - professional dark colors */
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+.orange {
+  /* Orange theme - white background with orange accents */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.646 0.222 41.116);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.95 0.05 45); /* Light orange accent */
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.646 0.222 41.116);
   --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(1 0 0);
+  --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.97 0 0);
-  --ring: oklch(0.65 0.18 45);
-  --chart-1: oklch(0.65 0.18 45); /* Orange */
-  --chart-2: oklch(0.6 0.15 25); /* Red-orange */
-  --chart-3: oklch(0.7 0.12 65); /* Yellow-orange */
-  --chart-4: oklch(0.55 0.2 35); /* Deep orange */
-  --chart-5: oklch(0.75 0.1 55); /* Light orange */
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.646 0.222 41.116);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.65 0.18 45);
+  --sidebar-primary: oklch(0.646 0.222 41.116);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-accent-foreground: oklch(0.646 0.222 41.116);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.65 0.18 45);
-}
-
-.dark {
-  /* Dark theme with professional dark colors */
-  --background: oklch(0.08 0 0);
-  /* Reduced text brightness from 0.95 to 0.88 for less eye strain */
-  --foreground: oklch(0.88 0 0);
-  --card: oklch(0.12 0 0);
-  --card-foreground: oklch(0.88 0 0);
-  --popover: oklch(0.12 0 0);
-  --popover-foreground: oklch(0.88 0 0);
-  --primary: oklch(0.7 0.18 45); /* Brighter orange for dark mode */
-  --primary-foreground: oklch(0.08 0 0);
-  --secondary: oklch(0.18 0 0);
-  --secondary-foreground: oklch(0.88 0 0);
-  --muted: oklch(0.18 0 0);
-  --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.2 0.05 45);
-  --accent-foreground: oklch(0.88 0 0);
-  --destructive: oklch(0.6 0.25 25);
-  --destructive-foreground: oklch(0.88 0 0);
-  --border: oklch(0.18 0 0);
-  --input: oklch(0.18 0 0);
-  --ring: oklch(0.7 0.18 45);
-  --chart-1: oklch(0.7 0.18 45);
-  --chart-2: oklch(0.65 0.15 25);
-  --chart-3: oklch(0.75 0.12 65);
-  --chart-4: oklch(0.6 0.2 35);
-  --chart-5: oklch(0.8 0.1 55);
-  --sidebar: oklch(0.12 0 0);
-  --sidebar-foreground: oklch(0.88 0 0);
-  --sidebar-primary: oklch(0.7 0.18 45);
-  --sidebar-primary-foreground: oklch(0.08 0 0);
-  --sidebar-accent: oklch(0.18 0 0);
-  --sidebar-accent-foreground: oklch(0.88 0 0);
-  --sidebar-border: oklch(0.18 0 0);
-  --sidebar-ring: oklch(0.7 0.18 45);
+  --sidebar-ring: oklch(0.646 0.222 41.116);
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -124,105 +160,5 @@
   }
   body {
     @apply bg-background text-foreground;
-  }
-
-  /* Adding icon color fixes for dark theme */
-  /* Ensure all Lucide icons are properly colored in dark theme */
-  .dark svg[data-lucide] {
-    color: hsl(var(--foreground));
-  }
-
-  /* Specific icon color overrides for better visibility */
-  .dark .text-muted-foreground svg[data-lucide] {
-    color: hsl(var(--muted-foreground));
-  }
-
-  /* Calendar and date picker icons */
-  .dark [data-slot="calendar"] svg[data-lucide] {
-    color: hsl(var(--foreground));
-  }
-
-  /* Button icons */
-  .dark button svg[data-lucide] {
-    color: currentColor;
-  }
-
-  /* Input and form icons */
-  .dark input + svg[data-lucide],
-  .dark .relative svg[data-lucide] {
-    color: hsl(var(--muted-foreground));
-  }
-
-  /* Dropdown and select icons */
-  .dark [data-radix-select-trigger] svg[data-lucide] {
-    color: hsl(var(--foreground));
-  }
-
-  /* Table action icons */
-  .dark table svg[data-lucide] {
-    color: hsl(var(--muted-foreground));
-  }
-
-  /* Navigation and sidebar icons */
-  .dark nav svg[data-lucide],
-  .dark [data-sidebar] svg[data-lucide] {
-    color: hsl(var(--sidebar-foreground));
-  }
-
-  /* Dialog and modal icons */
-  .dark [data-radix-dialog-content] svg[data-lucide] {
-    color: hsl(var(--foreground));
-  }
-
-  /* Ensure icons in cards are visible */
-  .dark .card svg[data-lucide] {
-    color: hsl(var(--card-foreground));
-  }
-
-  /* Override any opacity issues on icons */
-  .dark svg[data-lucide].opacity-50 {
-    opacity: 0.7 !important;
-  }
-
-  /* Enhanced date input calendar icon fix for dark mode with stronger specificity */
-  .dark input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: brightness(0) invert(1) !important;
-    cursor: pointer;
-    opacity: 1 !important;
-  }
-
-  .dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
-    filter: brightness(0) invert(1) opacity(0.8) !important;
-  }
-
-  /* For Firefox - calendar picker indicator */
-  .dark input[type="date"]::-moz-calendar-picker-indicator {
-    filter: brightness(0) invert(1) !important;
-    cursor: pointer;
-    opacity: 1 !important;
-  }
-
-  /* For Firefox */
-  .dark input[type="date"] {
-    color-scheme: dark;
-  }
-
-  /* Ensure the date input text is visible */
-  .dark input[type="date"]::-webkit-datetime-edit {
-    color: hsl(var(--foreground));
-  }
-
-  .dark input[type="date"]::-webkit-datetime-edit-fields-wrapper {
-    color: hsl(var(--foreground));
-  }
-
-  .dark input[type="date"]::-webkit-datetime-edit-text {
-    color: hsl(var(--muted-foreground));
-  }
-
-  .dark input[type="date"]::-webkit-datetime-edit-month-field,
-  .dark input[type="date"]::-webkit-datetime-edit-day-field,
-  .dark input[type="date"]::-webkit-datetime-edit-year-field {
-    color: hsl(var(--foreground));
   }
 }

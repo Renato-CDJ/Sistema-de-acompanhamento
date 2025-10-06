@@ -1099,7 +1099,35 @@ export function OverviewTab({ filters }: OverviewTabProps) {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Changed: Removed Treinamentos Concluídos for Caixa from COB section and added Alertas for COB */}
+            {/* CHANGE START */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Treinamentos Concluídos - Cobrança</CardTitle>
+                <CardDescription>Resumo dos treinamentos aplicados nas carteiras de Cobrança</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                    <p className="text-sm text-muted-foreground mb-1">Total de Treinamentos</p>
+                    <p className="text-2xl font-bold text-primary">{cobCapacitacaoStats.totalTreinamentos}</p>
+                  </div>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <p className="text-sm text-muted-foreground mb-1">Aplicados</p>
+                    <p className="text-2xl font-bold text-green-600">{cobCapacitacaoStats.aplicados}</p>
+                  </div>
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-muted-foreground mb-1">Pendentes</p>
+                    <p className="text-2xl font-bold text-amber-600">{cobCapacitacaoStats.pendentes}</p>
+                  </div>
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-muted-foreground mb-1">Taxa de Conclusão</p>
+                    <p className="text-2xl font-bold text-blue-600">{cobCapacitacaoStats.taxaConclusao.toFixed(1)}%</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            {/* CHANGE END */}
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Alertas - Cobrança</CardTitle>

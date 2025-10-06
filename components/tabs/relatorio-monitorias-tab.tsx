@@ -300,42 +300,133 @@ export function RelatorioMonitoriasTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Consolidado Mensal</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl">Consolidado Mensal</CardTitle>
+            <CardDescription className="text-base">
               Resumo de {MONTHS[Number.parseInt(selectedMonth)]} {selectedYear}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <p className="text-sm text-muted-foreground mb-1">Total Conforme</p>
-                  <p className="text-3xl font-bold text-green-600">{consolidatedTotals.conforme}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative overflow-hidden p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 rounded-xl border-2 border-green-200 dark:border-green-800 shadow-lg hover:shadow-xl transition-shadow">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-green-200 dark:bg-green-800 rounded-full -mr-12 -mt-12 opacity-20" />
+                  <div className="relative">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-2 bg-green-500 rounded-lg">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide">
+                        Total Conforme
+                      </p>
+                    </div>
+                    <p className="text-4xl font-bold text-green-700 dark:text-green-200 mb-1">
+                      {consolidatedTotals.conforme}
+                    </p>
+                    <p className="text-sm text-green-600 dark:text-green-400">Monitorias aprovadas</p>
+                  </div>
                 </div>
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                  <p className="text-sm text-muted-foreground mb-1">Total Inconforme</p>
-                  <p className="text-3xl font-bold text-red-600">{consolidatedTotals.inconforme}</p>
+
+                <div className="relative overflow-hidden p-6 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 rounded-xl border-2 border-red-200 dark:border-red-800 shadow-lg hover:shadow-xl transition-shadow">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-red-200 dark:bg-red-800 rounded-full -mr-12 -mt-12 opacity-20" />
+                  <div className="relative">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-2 bg-red-500 rounded-lg">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-red-700 dark:text-red-300 uppercase tracking-wide">
+                        Total Inconforme
+                      </p>
+                    </div>
+                    <p className="text-4xl font-bold text-red-700 dark:text-red-200 mb-1">
+                      {consolidatedTotals.inconforme}
+                    </p>
+                    <p className="text-sm text-red-600 dark:text-red-400">Monitorias reprovadas</p>
+                  </div>
                 </div>
               </div>
-              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <p className="text-sm text-muted-foreground mb-1">Total Geral</p>
-                <p className="text-3xl font-bold text-primary">{consolidatedTotals.total}</p>
+
+              <div className="relative overflow-hidden p-6 bg-gradient-to-br from-primary/10 to-primary/20 dark:from-primary/20 dark:to-primary/30 rounded-xl border-2 border-primary/30 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mt-16" />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-2 bg-primary rounded-lg">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-semibold text-primary uppercase tracking-wide">Total Geral</p>
+                  </div>
+                  <p className="text-4xl font-bold text-primary mb-1">{consolidatedTotals.total}</p>
+                  <p className="text-sm text-muted-foreground">Todas as monitorias realizadas</p>
+                </div>
               </div>
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-muted-foreground mb-1">Média de Conformidade</p>
-                <p className="text-3xl font-bold text-blue-600">{consolidatedTotals.mediaConforme}%</p>
+
+              <div className="relative overflow-hidden p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 rounded-xl border-2 border-blue-200 dark:border-blue-800 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200 dark:bg-blue-800 rounded-full -mr-16 -mt-16 opacity-20" />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-2 bg-blue-500 rounded-lg">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">
+                      Média de Conformidade
+                    </p>
+                  </div>
+                  <p className="text-4xl font-bold text-blue-700 dark:text-blue-200 mb-1">
+                    {consolidatedTotals.mediaConforme}%
+                  </p>
+                  <p className="text-sm text-muted-foreground">Taxa de aprovação do período</p>
+                </div>
               </div>
+
               {showInconformityAverage && (
-                <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                  <p className="text-sm text-muted-foreground mb-1">Média de Inconformidade</p>
-                  <p className="text-3xl font-bold text-orange-600">{consolidatedTotals.mediaInconforme}%</p>
+                <div className="relative overflow-hidden p-6 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 rounded-xl border-2 border-orange-200 dark:border-orange-800 shadow-lg hover:shadow-xl transition-shadow">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-orange-200 dark:bg-orange-800 rounded-full -mr-16 -mt-16 opacity-20" />
+                  <div className="relative">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-2 bg-orange-500 rounded-lg">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 17h8m0 0V9m0 8l-8-8-4 4-6 6"
+                          />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wide">
+                        Média de Inconformidade
+                      </p>
+                    </div>
+                    <p className="text-4xl font-bold text-orange-700 dark:text-orange-200 mb-1">
+                      {consolidatedTotals.mediaInconforme}%
+                    </p>
+                    <p className="text-sm text-muted-foreground">Taxa de reprovação do período</p>
+                  </div>
                 </div>
               )}
+
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowInconformityAverage(!showInconformityAverage)}
-                className="w-full gap-2"
+                className="w-full gap-2 h-10 font-medium hover:bg-muted transition-colors"
               >
                 {showInconformityAverage ? (
                   <>

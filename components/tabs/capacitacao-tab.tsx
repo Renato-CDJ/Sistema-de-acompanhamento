@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -48,10 +48,24 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
   const { toast } = useToast()
   const isAdmin = hasPermission(user, "edit")
   const [showCharts, setShowCharts] = useState(true)
+  const [showAddDialog, setShowAddDialog] = useState(false)
   const [editingCarteira, setEditingCarteira] = useState<any>(null)
   const [editingTreinamento, setEditingTreinamento] = useState<Treinamento | null>(null)
   const [deleteTreinamentoId, setDeleteTreinamentoId] = useState<number | null>(null)
   const [deleteAssuntoIndex, setDeleteAssuntoIndex] = useState<number | null>(null)
+
+  const [teamMembers, setTeamMembers] = useState<Array<{ id: number; nome: string }>>([])
+
+  useEffect(() => {
+    // Load team members from localStorage
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("areaQualidadeTeam")
+      if (saved) {
+        const members = JSON.parse(saved)
+        setTeamMembers(members.map((m: any) => ({ id: m.id, nome: m.nome })))
+      }
+    }
+  }, [])
 
   const {
     carteiras,
@@ -171,6 +185,8 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
         description: "Treinamento adicionado com sucesso.",
         variant: "default",
       })
+
+      setShowAddDialog(false)
     }
   }
 
@@ -193,12 +209,19 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
   const handleUpdateTreinamento = () => {
     if (editingTreinamento) {
       updateTreinamento(editingTreinamento.id, {
+        quantidade: editingTreinamento.quantidade,
+        turno: editingTreinamento.turno,
+        carteira: editingTreinamento.carteira,
+        data: editingTreinamento.data,
+        responsavel: editingTreinamento.responsavel,
         status: editingTreinamento.status,
+        assunto: editingTreinamento.assunto,
+        cargaHoraria: editingTreinamento.cargaHoraria,
       })
       setEditingTreinamento(null)
       toast({
         title: "Sucesso!",
-        description: "Status do treinamento atualizado com sucesso.",
+        description: "Treinamento atualizado com sucesso.",
         variant: "default",
       })
     }
@@ -330,6 +353,172 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
 
       {/* Charts Toggle */}
       <div className="flex justify-end gap-2">
+        {isAdmin && (
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2 bg-transparent">
+                <Plus className="h-4 w-4" />
+                Adicionar Treinamento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="space-y-3">
+                <DialogTitle className="flex items-center gap-2 text-xl">
+                  <Calendar className="h-6 w-6" />
+                  Adicionar Treinamento
+                </DialogTitle>
+                <DialogDescription className="text-base">Registre um novo treinamento no sistema</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6 py-6 px-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantidade" className="text-sm font-medium">
+                      Quantidade
+                    </Label>
+                    <Input
+                      id="quantidade"
+                      type="number"
+                      value={novoTreinamento.quantidade}
+                      onChange={(e) => setNovoTreinamento({ ...novoTreinamento, quantidade: e.target.value })}
+                      placeholder="0"
+                      className="h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="turno" className="text-sm font-medium">
+                      Turno
+                    </Label>
+                    <Select
+                      value={novoTreinamento.turno}
+                      onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, turno: value })}
+                    >
+                      <SelectTrigger id="turno" className="h-11">
+                        <SelectValue placeholder="Selecionar turno" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Manhã">Manhã</SelectItem>
+                        <SelectItem value="Tarde">Tarde</SelectItem>
+                        <SelectItem value="Integral">Integral</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="carteira" className="text-sm font-medium">
+                      Carteira
+                    </Label>
+                    <Select
+                      value={novoTreinamento.carteira}
+                      onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, carteira: value })}
+                    >
+                      <SelectTrigger id="carteira" className="h-11">
+                        <SelectValue placeholder="Selecionar carteira" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {carteiras.map((carteira) => (
+                          <SelectItem key={carteira.name} value={carteira.name}>
+                            {carteira.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="data" className="text-sm font-medium">
+                      Data
+                    </Label>
+                    <Input
+                      id="data"
+                      type="date"
+                      value={novoTreinamento.data}
+                      onChange={(e) => setNovoTreinamento({ ...novoTreinamento, data: e.target.value })}
+                      className="h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="responsavel" className="text-sm font-medium">
+                      Responsável
+                    </Label>
+                    <Select
+                      value={novoTreinamento.responsavel}
+                      onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, responsavel: value })}
+                    >
+                      <SelectTrigger id="responsavel" className="h-11">
+                        <SelectValue placeholder="Selecionar responsável" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamMembers.length > 0 ? (
+                          teamMembers.map((member) => (
+                            <SelectItem key={member.id} value={member.nome}>
+                              {member.nome}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>
+                            Nenhum membro cadastrado na Área Qualidade
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="status" className="text-sm font-medium">
+                      Status
+                    </Label>
+                    <Select
+                      value={novoTreinamento.status}
+                      onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, status: value })}
+                    >
+                      <SelectTrigger id="status" className="h-11">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Aplicado">Aplicado</SelectItem>
+                        <SelectItem value="Pendente">Pendente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="assunto" className="text-sm font-medium">
+                      Assunto Capacitação
+                    </Label>
+                    <Select
+                      value={novoTreinamento.assunto}
+                      onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, assunto: value })}
+                    >
+                      <SelectTrigger id="assunto" className="h-11">
+                        <SelectValue placeholder="Selecionar assunto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assuntos.map((assunto) => (
+                          <SelectItem key={assunto} value={assunto}>
+                            {assunto}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cargaHoraria" className="text-sm font-medium">
+                      Carga Horária
+                    </Label>
+                    <Input
+                      id="cargaHoraria"
+                      type="time"
+                      step="1"
+                      value={novoTreinamento.cargaHoraria}
+                      onChange={(e) => setNovoTreinamento({ ...novoTreinamento, cargaHoraria: e.target.value })}
+                      placeholder="00:00:00"
+                      className="h-11"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleAddTreinamento} className="w-full h-11 text-base font-medium">
+                  Adicionar Treinamento
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
         {isAdmin && (
           <Dialog>
             <DialogTrigger asChild>
@@ -473,136 +662,6 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
         </div>
       )}
 
-      {/* Adicionar Treinamento */}
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Adicionar Treinamento
-            </CardTitle>
-            <CardDescription>Registre um novo treinamento no sistema</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <div>
-                <Label htmlFor="quantidade">Quantidade</Label>
-                <Input
-                  id="quantidade"
-                  type="number"
-                  value={novoTreinamento.quantidade}
-                  onChange={(e) => setNovoTreinamento({ ...novoTreinamento, quantidade: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="turno">Turno</Label>
-                <Select
-                  value={novoTreinamento.turno}
-                  onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, turno: value })}
-                >
-                  <SelectTrigger id="turno">
-                    <SelectValue placeholder="Selecionar turno" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Manhã">Manhã</SelectItem>
-                    <SelectItem value="Tarde">Tarde</SelectItem>
-                    <SelectItem value="Integral">Integral</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="carteira">Carteira</Label>
-                <Select
-                  value={novoTreinamento.carteira}
-                  onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, carteira: value })}
-                >
-                  <SelectTrigger id="carteira">
-                    <SelectValue placeholder="Selecionar carteira" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {carteiras.map((carteira) => (
-                      <SelectItem key={carteira.name} value={carteira.name}>
-                        {carteira.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="data">Data</Label>
-                <Input
-                  id="data"
-                  type="date"
-                  value={novoTreinamento.data}
-                  onChange={(e) => setNovoTreinamento({ ...novoTreinamento, data: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
-              <div>
-                <Label htmlFor="responsavel">Responsável</Label>
-                <Input
-                  id="responsavel"
-                  value={novoTreinamento.responsavel}
-                  onChange={(e) => setNovoTreinamento({ ...novoTreinamento, responsavel: e.target.value })}
-                  placeholder="Nome do responsável"
-                />
-              </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={novoTreinamento.status}
-                  onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, status: value })}
-                >
-                  <SelectTrigger id="status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Aplicado">Aplicado</SelectItem>
-                    <SelectItem value="Pendente">Pendente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="assunto">Assunto Capacitação</Label>
-                <Select
-                  value={novoTreinamento.assunto}
-                  onValueChange={(value) => setNovoTreinamento({ ...novoTreinamento, assunto: value })}
-                >
-                  <SelectTrigger id="assunto">
-                    <SelectValue placeholder="Selecionar assunto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assuntos.map((assunto) => (
-                      <SelectItem key={assunto} value={assunto}>
-                        {assunto}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="cargaHoraria">Carga Horária</Label>
-                <Input
-                  id="cargaHoraria"
-                  type="time"
-                  step="1"
-                  value={novoTreinamento.cargaHoraria}
-                  onChange={(e) => setNovoTreinamento({ ...novoTreinamento, cargaHoraria: e.target.value })}
-                  placeholder="00:00:00"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleAddTreinamento} className="flex-1">
-                Adicionar Treinamento
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Tabela de Treinamentos */}
       <Card>
         <CardHeader>
@@ -699,36 +758,144 @@ export function CapacitacaoTab({ filters }: CapacitacaoTabProps) {
 
       {editingTreinamento && (
         <Dialog open={!!editingTreinamento} onOpenChange={() => setEditingTreinamento(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Editar Status do Treinamento</DialogTitle>
-              <DialogDescription>Altere o status do treinamento entre Pendente e Aplicado</DialogDescription>
+              <DialogTitle className="text-xl">Editar Treinamento</DialogTitle>
+              <DialogDescription>Edite todas as informações do treinamento</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Treinamento: {editingTreinamento.assunto}</Label>
-                <p className="text-sm text-muted-foreground">
-                  Carteira: {editingTreinamento.carteira} | Quantidade: {editingTreinamento.quantidade}
-                </p>
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-quantidade">Quantidade</Label>
+                  <Input
+                    id="edit-quantidade"
+                    type="number"
+                    value={editingTreinamento.quantidade}
+                    onChange={(e) =>
+                      setEditingTreinamento({
+                        ...editingTreinamento,
+                        quantidade: Number.parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-turno">Turno</Label>
+                  <Select
+                    value={editingTreinamento.turno}
+                    onValueChange={(value) => setEditingTreinamento({ ...editingTreinamento, turno: value })}
+                  >
+                    <SelectTrigger id="edit-turno" className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Manhã">Manhã</SelectItem>
+                      <SelectItem value="Tarde">Tarde</SelectItem>
+                      <SelectItem value="Integral">Integral</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-carteira">Carteira</Label>
+                  <Select
+                    value={editingTreinamento.carteira}
+                    onValueChange={(value) => setEditingTreinamento({ ...editingTreinamento, carteira: value })}
+                  >
+                    <SelectTrigger id="edit-carteira" className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {carteiras.map((carteira) => (
+                        <SelectItem key={carteira.name} value={carteira.name}>
+                          {carteira.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-data">Data</Label>
+                  <Input
+                    id="edit-data"
+                    type="date"
+                    value={editingTreinamento.data}
+                    onChange={(e) => setEditingTreinamento({ ...editingTreinamento, data: e.target.value })}
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-responsavel">Responsável</Label>
+                  <Select
+                    value={editingTreinamento.responsavel}
+                    onValueChange={(value) => setEditingTreinamento({ ...editingTreinamento, responsavel: value })}
+                  >
+                    <SelectTrigger id="edit-responsavel" className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teamMembers.length > 0 ? (
+                        teamMembers.map((member) => (
+                          <SelectItem key={member.id} value={member.nome}>
+                            {member.nome}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="none" disabled>
+                          Nenhum membro cadastrado
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select
+                    value={editingTreinamento.status}
+                    onValueChange={(value) =>
+                      setEditingTreinamento({ ...editingTreinamento, status: value as "Aplicado" | "Pendente" })
+                    }
+                  >
+                    <SelectTrigger id="edit-status" className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Aplicado">Aplicado</SelectItem>
+                      <SelectItem value="Pendente">Pendente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-assunto">Assunto Capacitação</Label>
+                  <Select
+                    value={editingTreinamento.assunto}
+                    onValueChange={(value) => setEditingTreinamento({ ...editingTreinamento, assunto: value })}
+                  >
+                    <SelectTrigger id="edit-assunto" className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {assuntos.map((assunto) => (
+                        <SelectItem key={assunto} value={assunto}>
+                          {assunto}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-cargaHoraria">Carga Horária</Label>
+                  <Input
+                    id="edit-cargaHoraria"
+                    type="time"
+                    step="1"
+                    value={editingTreinamento.cargaHoraria}
+                    onChange={(e) => setEditingTreinamento({ ...editingTreinamento, cargaHoraria: e.target.value })}
+                    className="h-10"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="edit-status">Status</Label>
-                <Select
-                  value={editingTreinamento.status}
-                  onValueChange={(value) =>
-                    setEditingTreinamento({ ...editingTreinamento, status: value as "Aplicado" | "Pendente" })
-                  }
-                >
-                  <SelectTrigger id="edit-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Aplicado">Aplicado</SelectItem>
-                    <SelectItem value="Pendente">Pendente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={handleUpdateTreinamento} className="w-full">
+              <Button onClick={handleUpdateTreinamento} className="w-full h-11 text-base font-medium">
                 Salvar Alterações
               </Button>
             </div>

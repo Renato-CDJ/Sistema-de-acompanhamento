@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
-import { Eye, EyeOff, Calendar, BarChart3, Edit, Trash2, ChevronDown } from "lucide-react"
+import { Eye, EyeOff, Calendar, BarChart3, Edit, Trash2, ChevronDown, Plus } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/auth"
 import { useData } from "@/contexts/data-context"
@@ -70,6 +71,9 @@ export function QuadroTab({ filters }: QuadroTabProps) {
   const [selectedTurno, setSelectedTurno] = useState("geral")
   const [showCharts, setShowCharts] = useState(true)
   const [showCarteiraDetails, setShowCarteiraDetails] = useState(false)
+
+  const [isDadosDiariosDialogOpen, setIsDadosDiariosDialogOpen] = useState(false)
+  const [isCarteiraStatsDialogOpen, setIsCarteiraStatsDialogOpen] = useState(false)
 
   const [newCarteira, setNewCarteira] = useState("")
   const [editingCarteira, setEditingCarteira] = useState(null)
@@ -313,6 +317,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       faltas: 0,
       turno: "geral",
     })
+    setIsCarteiraStatsDialogOpen(false)
   }
 
   const handleEditCarteiraStats = (stat: any) => {
@@ -325,7 +330,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       faltas: stat.faltas,
       turno: stat.turno,
     })
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    setIsCarteiraStatsDialogOpen(true)
   }
 
   const handleDeleteCarteiraStats = (id: number) => {
@@ -358,7 +363,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       turno: record.turno,
       secao: record.secao,
     })
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    setIsDadosDiariosDialogOpen(true)
   }
 
   const handleDeleteDadosDiarios = (id: number) => {
@@ -419,6 +424,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       turno: "geral",
       secao: "",
     })
+    setIsDadosDiariosDialogOpen(false)
   }
 
   const handleCancelEditCarteiraStats = () => {
@@ -432,6 +438,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       faltas: 0,
       turno: "geral",
     })
+    setIsCarteiraStatsDialogOpen(false)
   }
 
   const handleCancelEditDailyData = () => {
@@ -448,6 +455,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       turno: "geral",
       secao: "",
     })
+    setIsDadosDiariosDialogOpen(false)
   }
 
   const filteredCarteiraStats = estatisticasCarteiras.filter((stat) => {
@@ -564,10 +572,12 @@ export function QuadroTab({ filters }: QuadroTabProps) {
             </Select>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setShowCharts(!showCharts)} className="gap-2">
-          {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          {showCharts ? "Ocultar Gráficos" : "Mostrar Gráficos"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowCharts(!showCharts)} className="gap-2">
+            {showCharts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showCharts ? "Ocultar Gráficos" : "Mostrar Gráficos"}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
@@ -626,6 +636,18 @@ export function QuadroTab({ filters }: QuadroTabProps) {
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Estatísticas por Carteira</h3>
             <div className="flex gap-2">
+              {isAdmin && (
+                <>
+                  <Button onClick={() => setIsDadosDiariosDialogOpen(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Adicionar Dados Diários
+                  </Button>
+                  <Button onClick={() => setIsCarteiraStatsDialogOpen(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Adicionar Estatísticas por Carteira
+                  </Button>
+                </>
+              )}
               <Button variant="outline" onClick={() => setShowCarteiraDetails(!showCarteiraDetails)}>
                 {showCarteiraDetails ? "Ocultar Detalhes" : "Mostrar Detalhes"}
               </Button>
@@ -683,130 +705,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
               </CardContent>
             </Card>
           )}
-
-          {isAdmin && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  {editingCarteiraStats !== null
-                    ? "Editar Estatísticas por Carteira"
-                    : "Adicionar Estatísticas por Carteira"}
-                </CardTitle>
-                <CardDescription>
-                  {editingCarteiraStats !== null
-                    ? "Atualize as estatísticas específicas de cada carteira"
-                    : "Registre as estatísticas específicas de cada carteira"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-                    <div>
-                      <Label htmlFor="carteira-stats-date">Data</Label>
-                      <Input
-                        id="carteira-stats-date"
-                        type="date"
-                        value={carteiraStatsData.date}
-                        onChange={(e) => handleCarteiraStatsChange("date", e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="carteira-stats-carteira">Carteira</Label>
-                      <Select
-                        value={carteiraStatsData.carteira}
-                        onValueChange={(value) => handleCarteiraStatsChange("carteira", value)}
-                      >
-                        <SelectTrigger id="carteira-stats-carteira">
-                          <SelectValue placeholder="Selecione a carteira" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {carteiras.length === 0 ? (
-                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                              Nenhuma carteira cadastrada. Acesse a aba "Capacitação" para adicionar.
-                            </div>
-                          ) : (
-                            carteiras.map((carteira) => (
-                              <SelectItem key={carteira.id} value={carteira.name}>
-                                {carteira.name}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="carteira-stats-turno">Turno</Label>
-                      <Select
-                        value={carteiraStatsData.turno}
-                        onValueChange={(value) => handleCarteiraStatsChange("turno", value)}
-                      >
-                        <SelectTrigger id="carteira-stats-turno">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="geral">Geral</SelectItem>
-                          <SelectItem value="manha">Manhã</SelectItem>
-                          <SelectItem value="tarde">Tarde</SelectItem>
-                          <SelectItem value="integral">Integral</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <Label htmlFor="carteira-stats-total">Total</Label>
-                      <Input
-                        id="carteira-stats-total"
-                        type="number"
-                        placeholder="0"
-                        value={carteiraStatsData.total}
-                        readOnly
-                        className="bg-muted"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">Calculado automaticamente</p>
-                    </div>
-                    <div>
-                      <Label htmlFor="carteira-stats-presentes">Presentes</Label>
-                      <Input
-                        id="carteira-stats-presentes"
-                        type="number"
-                        placeholder="0"
-                        value={carteiraStatsData.presentes}
-                        onChange={(e) => handleCarteiraStatsChange("presentes", Number(e.target.value))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="carteira-stats-faltas">Faltas</Label>
-                      <Input
-                        id="carteira-stats-faltas"
-                        type="number"
-                        placeholder="0"
-                        value={carteiraStatsData.faltas}
-                        onChange={(e) => handleCarteiraStatsChange("faltas", Number(e.target.value))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-2 justify-end">
-                    {editingCarteiraStats !== null && (
-                      <Button
-                        variant="outline"
-                        className="w-full sm:w-auto bg-transparent"
-                        onClick={handleCancelEditCarteiraStats}
-                      >
-                        Cancelar
-                      </Button>
-                    )}
-                    <Button className="w-full sm:w-auto" onClick={handleSaveCarteiraStats}>
-                      {editingCarteiraStats !== null ? "Atualizar" : "Salvar"}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
 
@@ -840,136 +738,13 @@ export function QuadroTab({ filters }: QuadroTabProps) {
         </Card>
       )}
 
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              {editingDailyData !== null ? "Editar Dados Diários" : "Adicionar Dados Diários"}
-            </CardTitle>
-            <CardDescription>
-              {editingDailyData !== null
-                ? `Atualize os números diários para ${dailyData.secao || (selectedOption === "caixa" ? "Caixa" : "Cobrança")}`
-                : `Registre os números diários para ${selectedOption === "caixa" ? "Caixa" : "Cobrança"}`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {editingDailyData !== null && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                    Editando registro da seção: <span className="font-bold">{dailyData.secao}</span>
-                  </p>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                <div>
-                  <Label htmlFor="daily-date">Data</Label>
-                  <Input
-                    id="daily-date"
-                    type="date"
-                    value={dailyData.date}
-                    onChange={(e) => handleDailyDataChange("date", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="daily-turno">Turno</Label>
-                  <Select value={dailyData.turno} onValueChange={(value) => handleDailyDataChange("turno", value)}>
-                    <SelectTrigger id="daily-turno">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="geral">Geral</SelectItem>
-                      <SelectItem value="manha">Manhã</SelectItem>
-                      <SelectItem value="tarde">Tarde</SelectItem>
-                      <SelectItem value="integral">Integral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
-                <div>
-                  <Label htmlFor="daily-total">Total</Label>
-                  <Input
-                    id="daily-total"
-                    type="number"
-                    placeholder="0"
-                    value={dailyData.total}
-                    readOnly
-                    className="bg-muted"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Calculado automaticamente</p>
-                </div>
-                <div>
-                  <Label htmlFor="daily-ativos">Ativos</Label>
-                  <Input
-                    id="daily-ativos"
-                    type="number"
-                    placeholder="0"
-                    value={dailyData.ativos}
-                    onChange={(e) => handleDailyDataChange("ativos", Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="daily-ferias">Férias</Label>
-                  <Input
-                    id="daily-ferias"
-                    type="number"
-                    placeholder="0"
-                    value={dailyData.ferias}
-                    onChange={(e) => handleDailyDataChange("ferias", Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="daily-afastamento">Afastamento</Label>
-                  <Input
-                    id="daily-afastamento"
-                    type="number"
-                    placeholder="0"
-                    value={dailyData.afastamento}
-                    onChange={(e) => handleDailyDataChange("afastamento", Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="daily-desaparecidos">Desaparecidos</Label>
-                  <Input
-                    id="daily-desaparecidos"
-                    type="number"
-                    placeholder="0"
-                    value={dailyData.desaparecidos}
-                    onChange={(e) => handleDailyDataChange("desaparecidos", Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="daily-inss">INSS</Label>
-                  <Input
-                    id="daily-inss"
-                    type="number"
-                    placeholder="0"
-                    value={dailyData.inss}
-                    onChange={(e) => handleDailyDataChange("inss", Number(e.target.value))}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 justify-end">
-                {editingDailyData !== null && (
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-auto bg-transparent"
-                    onClick={handleCancelEditDailyData}
-                  >
-                    Cancelar
-                  </Button>
-                )}
-                <Button className="w-full sm:w-auto" onClick={handleSaveDailyData}>
-                  {editingDailyData !== null ? "Atualizar" : "Salvar"}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {selectedOption === "caixa" && isAdmin && (
+        <div className="flex justify-end">
+          <Button onClick={() => setIsDadosDiariosDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Adicionar Dados Diários
+          </Button>
+        </div>
       )}
 
       <Card>
@@ -993,7 +768,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
               <p>Nenhum dado encontrado com os filtros aplicados.</p>
               <p className="text-sm">
                 {dadosDiarios.length === 0
-                  ? "Use o formulário acima para adicionar dados diários."
+                  ? "Use o botão 'Adicionar Dados Diários' para adicionar dados."
                   : "Tente ajustar os filtros ou adicionar novos dados."}
               </p>
             </div>
@@ -1067,7 +842,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                 <p>Nenhuma estatística de carteira encontrada.</p>
                 <p className="text-sm">
                   {estatisticasCarteiras.length === 0
-                    ? "Use o formulário 'Adicionar Estatísticas por Carteira' para adicionar dados."
+                    ? "Use o botão 'Adicionar Estatísticas por Carteira' para adicionar dados."
                     : "Tente ajustar os filtros ou adicionar novos dados."}
                 </p>
               </div>
@@ -1117,6 +892,287 @@ export function QuadroTab({ filters }: QuadroTabProps) {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isDadosDiariosDialogOpen} onOpenChange={setIsDadosDiariosDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              {editingDailyData !== null ? "Editar Dados Diários" : "Adicionar Dados Diários"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingDailyData !== null
+                ? `Atualize os números diários para ${dailyData.secao || (selectedOption === "caixa" ? "Caixa" : "Cobrança")}`
+                : `Registre os números diários para ${selectedOption === "caixa" ? "Caixa" : "Cobrança"}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-8 py-4">
+            {editingDailyData !== null && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Editando registro da seção: <span className="font-bold">{dailyData.secao}</span>
+                </p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="daily-date" className="text-base font-medium">
+                  Data
+                </Label>
+                <Input
+                  id="daily-date"
+                  type="date"
+                  className="h-11"
+                  value={dailyData.date}
+                  onChange={(e) => handleDailyDataChange("date", e.target.value)}
+                />
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="daily-turno" className="text-base font-medium">
+                  Turno
+                </Label>
+                <Select value={dailyData.turno} onValueChange={(value) => handleDailyDataChange("turno", value)}>
+                  <SelectTrigger id="daily-turno" className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="geral">Geral</SelectItem>
+                    <SelectItem value="manha">Manhã</SelectItem>
+                    <SelectItem value="tarde">Tarde</SelectItem>
+                    <SelectItem value="integral">Integral</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="daily-total" className="text-base font-medium">
+                  Total
+                </Label>
+                <Input
+                  id="daily-total"
+                  type="number"
+                  placeholder="0"
+                  className="h-11 bg-muted"
+                  value={dailyData.total}
+                  readOnly
+                />
+                <p className="text-xs text-muted-foreground">Calculado automaticamente</p>
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="daily-ativos" className="text-base font-medium">
+                  Ativos
+                </Label>
+                <Input
+                  id="daily-ativos"
+                  type="number"
+                  placeholder="0"
+                  className="h-11"
+                  value={dailyData.ativos}
+                  onChange={(e) => handleDailyDataChange("ativos", Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="daily-ferias" className="text-base font-medium">
+                  Férias
+                </Label>
+                <Input
+                  id="daily-ferias"
+                  type="number"
+                  placeholder="0"
+                  className="h-11"
+                  value={dailyData.ferias}
+                  onChange={(e) => handleDailyDataChange("ferias", Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="daily-afastamento" className="text-base font-medium">
+                  Afastamento
+                </Label>
+                <Input
+                  id="daily-afastamento"
+                  type="number"
+                  placeholder="0"
+                  className="h-11"
+                  value={dailyData.afastamento}
+                  onChange={(e) => handleDailyDataChange("afastamento", Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="daily-desaparecidos" className="text-base font-medium">
+                  Desaparecidos
+                </Label>
+                <Input
+                  id="daily-desaparecidos"
+                  type="number"
+                  placeholder="0"
+                  className="h-11"
+                  value={dailyData.desaparecidos}
+                  onChange={(e) => handleDailyDataChange("desaparecidos", Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="daily-inss" className="text-base font-medium">
+                  INSS
+                </Label>
+                <Input
+                  id="daily-inss"
+                  type="number"
+                  placeholder="0"
+                  className="h-11"
+                  value={dailyData.inss}
+                  onChange={(e) => handleDailyDataChange("inss", Number(e.target.value))}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-end pt-4">
+              <Button variant="outline" className="w-full sm:w-auto bg-transparent" onClick={handleCancelEditDailyData}>
+                Cancelar
+              </Button>
+              <Button className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600" onClick={handleSaveDailyData}>
+                {editingDailyData !== null ? "Atualizar" : "Adicionar Dados Diários"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCarteiraStatsDialogOpen} onOpenChange={setIsCarteiraStatsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              {editingCarteiraStats !== null
+                ? "Editar Estatísticas por Carteira"
+                : "Adicionar Estatísticas por Carteira"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCarteiraStats !== null
+                ? "Atualize as estatísticas específicas de cada carteira"
+                : "Registre as estatísticas específicas de cada carteira"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-8 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="carteira-stats-date" className="text-base font-medium">
+                  Data
+                </Label>
+                <Input
+                  id="carteira-stats-date"
+                  type="date"
+                  className="h-11"
+                  value={carteiraStatsData.date}
+                  onChange={(e) => handleCarteiraStatsChange("date", e.target.value)}
+                />
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="carteira-stats-carteira" className="text-base font-medium">
+                  Carteira
+                </Label>
+                <Select
+                  value={carteiraStatsData.carteira}
+                  onValueChange={(value) => handleCarteiraStatsChange("carteira", value)}
+                >
+                  <SelectTrigger id="carteira-stats-carteira" className="h-11">
+                    <SelectValue placeholder="Selecione a carteira" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {carteiras.length === 0 ? (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        Nenhuma carteira cadastrada. Acesse a aba "Capacitação" para adicionar.
+                      </div>
+                    ) : (
+                      carteiras.map((carteira) => (
+                        <SelectItem key={carteira.id} value={carteira.name}>
+                          {carteira.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="carteira-stats-turno" className="text-base font-medium">
+                  Turno
+                </Label>
+                <Select
+                  value={carteiraStatsData.turno}
+                  onValueChange={(value) => handleCarteiraStatsChange("turno", value)}
+                >
+                  <SelectTrigger id="carteira-stats-turno" className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="geral">Geral</SelectItem>
+                    <SelectItem value="manha">Manhã</SelectItem>
+                    <SelectItem value="tarde">Tarde</SelectItem>
+                    <SelectItem value="integral">Integral</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="carteira-stats-total" className="text-base font-medium">
+                  Total
+                </Label>
+                <Input
+                  id="carteira-stats-total"
+                  type="number"
+                  placeholder="0"
+                  className="h-11 bg-muted"
+                  value={carteiraStatsData.total}
+                  readOnly
+                />
+                <p className="text-xs text-muted-foreground">Calculado automaticamente</p>
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="carteira-stats-presentes" className="text-base font-medium">
+                  Presentes
+                </Label>
+                <Input
+                  id="carteira-stats-presentes"
+                  type="number"
+                  placeholder="0"
+                  className="h-11"
+                  value={carteiraStatsData.presentes}
+                  onChange={(e) => handleCarteiraStatsChange("presentes", Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-3">
+                <Label htmlFor="carteira-stats-faltas" className="text-base font-medium">
+                  Faltas
+                </Label>
+                <Input
+                  id="carteira-stats-faltas"
+                  type="number"
+                  placeholder="0"
+                  className="h-11"
+                  value={carteiraStatsData.faltas}
+                  onChange={(e) => handleCarteiraStatsChange("faltas", Number(e.target.value))}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-end pt-4">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto bg-transparent"
+                onClick={handleCancelEditCarteiraStats}
+              >
+                Cancelar
+              </Button>
+              <Button className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600" onClick={handleSaveCarteiraStats}>
+                {editingCarteiraStats !== null ? "Atualizar" : "Adicionar Estatísticas"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteCarteiraId !== null} onOpenChange={() => setDeleteCarteiraId(null)}>
         <AlertDialogContent>

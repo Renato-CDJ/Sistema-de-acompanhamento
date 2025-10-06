@@ -13,6 +13,13 @@ import { CarteirasTab } from "@/components/tabs/carteiras-tab"
 import { OperadoresTab } from "@/components/tabs/operadores-tab"
 import { RelatorioMonitoriasTab } from "@/components/tabs/relatorio-monitorias-tab"
 import { ApuracaoTIATab } from "@/components/tabs/apuracao-tia-tab"
+import { AgendasTab } from "@/components/tabs/agendas-tab"
+import { ChatTab } from "@/components/tabs/chat-tab"
+import { DocumentosTab } from "@/components/tabs/documentos-tab"
+import { AdminPanelTab } from "@/components/tabs/admin-panel-tab"
+import { ActivityLogTab } from "@/components/tabs/activity-log-tab"
+import { AreaQualidadeTab } from "@/components/tabs/area-qualidade-tab"
+import { ControleAgentesTab } from "@/components/tabs/controle-agentes-tab"
 
 interface Filters {
   dateRange?: { start: string; end: string }
@@ -66,6 +73,20 @@ export default function HomePage() {
         return <RelatorioMonitoriasTab filters={appliedFilters} />
       case "apuracao-tia":
         return <ApuracaoTIATab filters={appliedFilters} />
+      case "agendas":
+        return <AgendasTab />
+      case "chat":
+        return <ChatTab />
+      case "documentos":
+        return <DocumentosTab />
+      case "area-qualidade":
+        return <AreaQualidadeTab />
+      case "controle-agentes":
+        return <ControleAgentesTab />
+      case "admin-panel":
+        return <AdminPanelTab />
+      case "activity-log":
+        return <ActivityLogTab />
       default:
         return <OverviewTab filters={appliedFilters} />
     }

@@ -5,8 +5,10 @@ import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
-import { hasPermission } from "@/lib/auth"
+import { hasPermission, isSuperAdmin, canAccessTab } from "@/lib/auth"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { NotificationsPanel } from "@/components/notifications-panel"
+import { UserProfileDialog } from "@/components/user-profile-dialog"
 import {
   Building2,
   BarChart3,
@@ -22,6 +24,17 @@ import {
   Check,
   FilterX,
   FileText,
+  Calendar,
+  MessageSquare,
+  FolderOpen,
+  ShieldCheck,
+  ChevronDown,
+  ChevronRight,
+  Briefcase,
+  ClipboardCheck,
+  BookOpen,
+  History,
+  UserCog,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -46,17 +59,61 @@ interface DashboardLayoutProps {
   onClearFilters?: () => void
 }
 
-const tabs = [
-  { id: "overview", label: "Visão Geral", icon: BarChart3 },
-  { id: "quadro", label: "Quadro", icon: Users },
-  { id: "capacitacao", label: "Capacitação", icon: GraduationCap },
-  { id: "treinados", label: "Treinados", icon: UserCheck },
-  { id: "desligamentos", label: "Desligamentos", icon: UserX },
-  { id: "carteiras", label: "Carteiras", icon: Wallet },
-  { id: "operadores", label: "Operadores", icon: Users },
-  { id: "relatorio-monitorias", label: "Relatório de Monitorias", icon: FileText },
-  { id: "apuracao-tia", label: "Apuração TIA", icon: FileText },
+const navigationStructure = [
+  { id: "overview", label: "Visão Geral", icon: BarChart3, type: "tab" as const },
+  { id: "agendas", label: "Agendas", icon: Calendar, type: "tab" as const },
+  {
+    id: "administrativo",
+    label: "Administrativo",
+    icon: Briefcase,
+    type: "group" as const,
+    children: [
+      { id: "quadro", label: "Quadro", icon: Users },
+      { id: "operadores", label: "Operadores", icon: Users },
+      { id: "carteiras", label: "Carteiras", icon: Wallet },
+      { id: "desligamentos", label: "Desligamentos", icon: UserX },
+      { id: "activity-log", label: "Histórico de Atividades", icon: History },
+      { id: "documentos", label: "Documentos", icon: FolderOpen },
+    ],
+  },
+  {
+    id: "monitoria",
+    label: "Monitoria",
+    icon: ClipboardCheck,
+    type: "group" as const,
+    children: [
+      { id: "relatorio-monitorias", label: "Relatório de Monitorias", icon: FileText },
+      { id: "apuracao-tia", label: "Apuração TIA", icon: FileText },
+    ],
+  },
+  {
+    id: "treinamento",
+    label: "Treinamento",
+    icon: BookOpen,
+    type: "group" as const,
+    children: [
+      { id: "capacitacao", label: "Capacitação", icon: GraduationCap },
+      { id: "treinados", label: "Treinados", icon: UserCheck },
+    ],
+  },
+  {
+    id: "area-qualidade-group",
+    label: "Área Qualidade",
+    icon: Users,
+    type: "group" as const,
+    children: [
+      { id: "area-qualidade", label: "Visão Geral", icon: BarChart3 },
+      { id: "controle-agentes", label: "Controle de Agentes", icon: UserCog },
+    ],
+  },
+  { id: "chat", label: "Chat", icon: MessageSquare, type: "tab" as const },
+  { id: "admin-panel", label: "Painel Admin", icon: ShieldCheck, type: "tab" as const },
 ]
+
+// Helper to get all tab IDs for finding active tab label
+const allTabs = navigationStructure.flatMap((item) =>
+  item.type === "group" ? item.children.map((child) => ({ ...child, groupLabel: item.label })) : [item],
+)
 
 export function DashboardLayout({
   children,
@@ -71,7 +128,21 @@ export function DashboardLayout({
   const { carteiras } = useData()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    administrativo: false,
+    monitoria: false,
+    treinamento: false,
+    "area-qualidade-group": false,
+  })
   const isAdmin = hasPermission(user, "edit")
+  const isSuperAdminUser = isSuperAdmin(user)
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }))
+  }
 
   const handleFilterChange = (key: string, value: string) => {
     if (onFiltersChange) {
@@ -242,7 +313,12 @@ export function DashboardLayout({
         case "carteiras":
         case "operadores":
         case "relatorio-monitorias":
-        case "apuracao-tia": // Added Apuração TIA tab
+        case "apuracao-tia":
+        case "agendas":
+        case "chat":
+        case "documentos":
+        case "activity-log":
+        case "area-qualidade":
           return secaoFilter
         default:
           return secaoFilter
@@ -261,13 +337,16 @@ export function DashboardLayout({
     <div className="min-h-screen bg-background">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-in fade-in duration-200"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+          "fixed top-0 left-0 z-50 h-full w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out lg:translate-x-0 shadow-xl",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -291,46 +370,110 @@ export function DashboardLayout({
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4">
-            <div className="space-y-2">
-              {tabs.map((tab) => {
-                const Icon = tab.icon
-                return (
-                  <Button
-                    key={tab.id}
-                    variant={activeTab === tab.id ? "default" : "ghost"}
-                    className="w-full justify-start"
-                    onClick={() => {
-                      onTabChange(tab.id)
-                      setSidebarOpen(false)
-                    }}
-                  >
-                    <Icon className="mr-3 h-4 w-4" />
-                    {tab.label}
-                  </Button>
-                )
+          <nav className="flex-1 p-4 overflow-y-auto">
+            <div className="space-y-1">
+              {navigationStructure.map((item) => {
+                // Hide admin panel for non-super admins
+                if (item.id === "admin-panel" && !isSuperAdminUser) {
+                  return null
+                }
+
+                // Check permissions for regular tabs
+                if (item.type === "tab" && !isSuperAdminUser && !isAdmin && !canAccessTab(user, item.id)) {
+                  return null
+                }
+
+                const Icon = item.icon
+
+                // Render regular tab
+                if (item.type === "tab") {
+                  return (
+                    <Button
+                      key={item.id}
+                      variant={activeTab === item.id ? "default" : "ghost"}
+                      className="w-full justify-start"
+                      onClick={() => {
+                        onTabChange(item.id)
+                        setSidebarOpen(false)
+                      }}
+                    >
+                      <Icon className="mr-3 h-4 w-4" />
+                      {item.label}
+                    </Button>
+                  )
+                }
+
+                // Render group with children
+                if (item.type === "group") {
+                  const isExpanded = expandedGroups[item.id]
+                  const ChevronIcon = isExpanded ? ChevronDown : ChevronRight
+
+                  // Check if any child is accessible
+                  const hasAccessibleChildren = item.children.some(
+                    (child) => isSuperAdminUser || isAdmin || canAccessTab(user, child.id),
+                  )
+
+                  if (!hasAccessibleChildren) {
+                    return null
+                  }
+
+                  return (
+                    <div key={item.id} className="space-y-1">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start font-medium text-muted-foreground hover:text-foreground"
+                        onClick={() => toggleGroup(item.id)}
+                      >
+                        <ChevronIcon className="mr-2 h-4 w-4" />
+                        <Icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                      </Button>
+
+                      {isExpanded && (
+                        <div className="ml-4 space-y-1 border-l-2 border-border pl-2">
+                          {item.children.map((child) => {
+                            // Check permissions for child tabs
+                            if (!isSuperAdminUser && !isAdmin && !canAccessTab(user, child.id)) {
+                              return null
+                            }
+
+                            const ChildIcon = child.icon
+                            return (
+                              <Button
+                                key={child.id}
+                                variant={activeTab === child.id ? "default" : "ghost"}
+                                className="w-full justify-start text-sm"
+                                onClick={() => {
+                                  onTabChange(child.id)
+                                  setSidebarOpen(false)
+                                }}
+                              >
+                                <ChildIcon className="mr-3 h-4 w-4" />
+                                {child.label}
+                              </Button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+
+                return null
               })}
             </div>
           </nav>
 
           {/* User info */}
-          <div className="p-4 border-t border-border">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-primary">{user?.name.charAt(0)}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user?.name}</p>
-                  <p className="text-xs text-muted-foreground">{isAdmin ? "Administrador" : "Usuário"}</p>
-                </div>
-              </div>
+          <div className="p-4 border-t border-border space-y-2">
+            <UserProfileDialog />
+            <div className="flex items-center justify-between">
               <ThemeToggle />
+              <Button variant="ghost" size="sm" className="gap-2" onClick={logout}>
+                <LogOut className="h-4 w-4" />
+                Sair
+              </Button>
             </div>
-            <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={logout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </Button>
           </div>
         </div>
       </aside>
@@ -338,29 +481,39 @@ export function DashboardLayout({
       {/* Main content */}
       <div className="lg:ml-64">
         {/* Top bar */}
-        <header className="bg-card border-b border-border px-4 py-3 lg:px-6">
+        <header className="bg-card border-b border-border px-4 py-3 lg:px-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
                 <Menu className="h-5 w-5" />
               </Button>
-              <h2 className="text-xl font-semibold">{tabs.find((tab) => tab.id === activeTab)?.label}</h2>
+              <h2 className="text-xl font-semibold">{allTabs.find((tab) => tab.id === activeTab)?.label}</h2>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-2">
-                <Filter className="h-4 w-4" />
-                {showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
-              </Button>
+              <NotificationsPanel />
+              {activeTab !== "admin-panel" &&
+                activeTab !== "agendas" &&
+                activeTab !== "chat" &&
+                activeTab !== "documentos" &&
+                activeTab !== "activity-log" &&
+                activeTab !== "area-qualidade" && (
+                  <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-2">
+                    <Filter className="h-4 w-4" />
+                    {showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
+                  </Button>
+                )}
               {isAdmin && (
                 <div className="hidden sm:flex items-center space-x-2">
-                  <div className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">Modo Administrador</div>
+                  <div className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                    {isSuperAdminUser ? "Super Administrador" : "Modo Administrador"}
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
           {showFilters && (
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg border animate-in slide-in-from-top duration-300">
               {renderFilters()}
               <div className="flex gap-2 mt-4">
                 <Button onClick={handleApplyFilters} size="sm" className="gap-2">
@@ -377,7 +530,7 @@ export function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main className="p-4 lg:p-6">{children}</main>
+        <main className="p-4 lg:p-6 animate-fade-in">{children}</main>
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { useAuth } from "@/contexts/auth-context"
 
 // Tipos de dados
 interface Carteira {
@@ -75,6 +76,14 @@ interface MotivoDesligamento {
   nome: string
 }
 
+interface Agente {
+  id: number
+  operador: string
+  carteira: string
+  gestor: string
+  status: "Ativo" | "Desligado" | "Férias"
+}
+
 interface WeekData {
   id: string
   conforme: number
@@ -93,6 +102,21 @@ interface TIAEntry {
   analisados: number
   quantidade: number
   totalPercent: number
+}
+
+interface ActivityLog {
+  id: string
+  timestamp: string
+  user: string
+  action: string
+  entity: string
+  entityId: string | number
+  details: string
+  changes?: {
+    field: string
+    oldValue: string
+    newValue: string
+  }[]
 }
 
 interface DataContextType {
@@ -136,6 +160,13 @@ interface DataContextType {
   updateOperador: (id: number, operador: Partial<Operador>) => void
   deleteOperador: (id: number) => void
   importOperadores: (operadores: Omit<Operador, "id">[]) => void
+
+  // Agentes
+  agentes: Agente[]
+  addAgente: (agente: Omit<Agente, "id">) => void
+  updateAgente: (id: number, agente: Partial<Agente>) => void
+  deleteAgente: (id: number) => void
+  importAgentes: (agentes: Omit<Agente, "id">[]) => void
 
   // Estatísticas calculadas
   getCapacitacaoStats: () => {
@@ -194,6 +225,14 @@ interface DataContextType {
     totalQuantidade: number
     mediaPercent: string
   }
+
+  activityLogs: ActivityLog[]
+  getActivityLogs: (filters?: {
+    dateRange?: { start: string; end: string }
+    user?: string
+    action?: string
+    entity?: string
+  }) => ActivityLog[]
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -203,16 +242,303 @@ const initialAssuntos: string[] = []
 const initialMotivosDesligamento: MotivoDesligamento[] = []
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [carteiras, setCarteiras] = useState<Carteira[]>([])
-  const [treinamentos, setTreinamentos] = useState<Treinamento[]>([])
-  const [assuntos, setAssuntos] = useState<string[]>(initialAssuntos)
-  const [desligamentos, setDesligamentos] = useState<Desligamento[]>([])
-  const [motivosDesligamento, setMotivosDesligamento] = useState<MotivoDesligamento[]>(initialMotivosDesligamento)
-  const [dadosDiarios, setDadosDiarios] = useState<DadosDiarios[]>([])
-  const [estatisticasCarteiras, setEstatisticasCarteiras] = useState<EstatisticasCarteira[]>([])
-  const [operadores, setOperadores] = useState<Operador[]>([])
-  const [monitoringData, setMonitoringData] = useState<MonthData[]>([])
-  const [tiaData, setTiaData] = useState<TIAEntry[]>([])
+  const { user } = useAuth()
+
+  const [carteiras, setCarteiras] = useState<Carteira[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("carteiras")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading carteiras from localStorage:", error)
+        return []
+      }
+    }
+    return []
+  })
+
+  const [treinamentos, setTreinamentos] = useState<Treinamento[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("treinamentos")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading treinamentos from localStorage:", error)
+        return []
+      }
+    }
+    return []
+  })
+
+  const [assuntos, setAssuntos] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("assuntos")
+        return stored ? JSON.parse(stored) : initialAssuntos
+      } catch (error) {
+        console.error("Error loading assuntos from localStorage:", error)
+        return initialAssuntos
+      }
+    }
+    return initialAssuntos
+  })
+
+  const [desligamentos, setDesligamentos] = useState<Desligamento[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("desligamentos")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading desligamentos from localStorage:", error)
+        return []
+      }
+    }
+    return []
+  })
+
+  const [motivosDesligamento, setMotivosDesligamento] = useState<MotivoDesligamento[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("motivosDesligamento")
+        return stored ? JSON.parse(stored) : initialMotivosDesligamento
+      } catch (error) {
+        console.error("Error loading motivosDesligamento from localStorage:", error)
+        return initialMotivosDesligamento
+      }
+    }
+    return initialMotivosDesligamento
+  })
+
+  const [dadosDiarios, setDadosDiarios] = useState<DadosDiarios[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("dadosDiarios")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading dadosDiarios from localStorage:", error)
+        return []
+      }
+    }
+    return []
+  })
+
+  const [estatisticasCarteiras, setEstatisticasCarteiras] = useState<EstatisticasCarteira[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("estatisticasCarteiras")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading estatisticasCarteiras from localStorage:", error)
+        return []
+      }
+    }
+    return []
+  })
+
+  const [operadores, setOperadores] = useState<Operador[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("operadores")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading operadores from localStorage:", error)
+        return []
+      }
+    }
+    return []
+  })
+
+  const [agentes, setAgentes] = useState<Agente[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("agentes")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading agentes from localStorage:", error)
+        return []
+      }
+    }
+    return []
+  })
+
+  const [monitoringData, setMonitoringData] = useState<MonthData[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("monitoringData")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading monitoringData from localStorage:", error)
+        return []
+      }
+    }
+    return []
+  })
+
+  const [tiaData, setTiaData] = useState<TIAEntry[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("tiaData")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading tiaData from localStorage:", error)
+        return []
+      }
+    }
+    return []
+  })
+
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("activityLogs")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading activityLogs from localStorage:", error)
+        return []
+      }
+    }
+    return []
+  })
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("carteiras", JSON.stringify(carteiras))
+      } catch (error) {
+        console.error("Error saving carteiras to localStorage:", error)
+      }
+    }
+  }, [carteiras])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("treinamentos", JSON.stringify(treinamentos))
+      } catch (error) {
+        console.error("Error saving treinamentos to localStorage:", error)
+      }
+    }
+  }, [treinamentos])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("assuntos", JSON.stringify(assuntos))
+      } catch (error) {
+        console.error("Error saving assuntos to localStorage:", error)
+      }
+    }
+  }, [assuntos])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("desligamentos", JSON.stringify(desligamentos))
+      } catch (error) {
+        console.error("Error saving desligamentos to localStorage:", error)
+      }
+    }
+  }, [desligamentos])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("motivosDesligamento", JSON.stringify(motivosDesligamento))
+      } catch (error) {
+        console.error("Error saving motivosDesligamento to localStorage:", error)
+      }
+    }
+  }, [motivosDesligamento])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("dadosDiarios", JSON.stringify(dadosDiarios))
+      } catch (error) {
+        console.error("Error saving dadosDiarios to localStorage:", error)
+      }
+    }
+  }, [dadosDiarios])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("estatisticasCarteiras", JSON.stringify(estatisticasCarteiras))
+      } catch (error) {
+        console.error("Error saving estatisticasCarteiras to localStorage:", error)
+      }
+    }
+  }, [estatisticasCarteiras])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("operadores", JSON.stringify(operadores))
+      } catch (error) {
+        console.error("Error saving operadores to localStorage:", error)
+      }
+    }
+  }, [operadores])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("agentes", JSON.stringify(agentes))
+      } catch (error) {
+        console.error("Error saving agentes to localStorage:", error)
+      }
+    }
+  }, [agentes])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("monitoringData", JSON.stringify(monitoringData))
+      } catch (error) {
+        console.error("Error saving monitoringData to localStorage:", error)
+      }
+    }
+  }, [monitoringData])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("tiaData", JSON.stringify(tiaData))
+      } catch (error) {
+        console.error("Error saving tiaData to localStorage:", error)
+      }
+    }
+  }, [tiaData])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("activityLogs", JSON.stringify(activityLogs))
+      } catch (error) {
+        console.error("Error saving activityLogs to localStorage:", error)
+      }
+    }
+  }, [activityLogs])
+
+  const logActivity = (
+    action: string,
+    entity: string,
+    entityId: string | number,
+    details: string,
+    changes?: ActivityLog["changes"],
+  ) => {
+    const log: ActivityLog = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date().toISOString(),
+      user: user?.username || "Sistema",
+      action,
+      entity,
+      entityId,
+      details,
+      changes,
+    }
+    setActivityLogs((prev) => [log, ...prev])
+  }
 
   const addCarteira = (name: string) => {
     const carteira: Carteira = {
@@ -225,14 +551,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     }
     setCarteiras((prev) => [...prev, carteira])
+    logActivity("Criar", "Carteira", carteira.id, `Carteira "${name}" criada`)
   }
 
   const updateCarteira = (id: string, newName: string) => {
+    const oldCarteira = carteiras.find((c) => c.id === id)
     setCarteiras((prev) => prev.map((carteira) => (carteira.id === id ? { ...carteira, name: newName } : carteira)))
+    if (oldCarteira) {
+      logActivity("Editar", "Carteira", id, `Carteira renomeada`, [
+        { field: "Nome", oldValue: oldCarteira.name, newValue: newName },
+      ])
+    }
   }
 
   const deleteCarteira = (id: string) => {
+    const carteira = carteiras.find((c) => c.id === id)
     setCarteiras((prev) => prev.filter((c) => c.id !== id))
+    if (carteira) {
+      logActivity("Excluir", "Carteira", id, `Carteira "${carteira.name}" excluída`)
+    }
   }
 
   const addTreinamento = (novoTreinamento: Omit<Treinamento, "id">) => {
@@ -264,10 +601,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return carteira
       }),
     )
+
+    logActivity(
+      "Criar",
+      "Treinamento",
+      treinamento.id,
+      `Treinamento "${treinamento.assunto}" adicionado para ${treinamento.quantidade} operadores`,
+    )
   }
 
   const addAssunto = (novoAssunto: string) => {
     setAssuntos((prev) => [...prev, novoAssunto])
+    logActivity("Criar", "Assunto", novoAssunto, `Assunto "${novoAssunto}" criado`)
   }
 
   const updateAssunto = (index: number, novoAssunto: string) => {
@@ -286,12 +631,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
         prevOperadores.map((o) => (o.assunto === assuntoAntigo ? { ...o, assunto: novoAssunto } : o)),
       )
 
+      logActivity("Editar", "Assunto", index, `Assunto renomeado`, [
+        { field: "Nome", oldValue: assuntoAntigo, newValue: novoAssunto },
+      ])
+
       return novosAssuntos
     })
   }
 
   const deleteAssunto = (index: number) => {
+    const assunto = assuntos[index]
     setAssuntos((prev) => prev.filter((_, i) => i !== index))
+    logActivity("Excluir", "Assunto", index, `Assunto "${assunto}" excluído`)
   }
 
   const addDesligamento = (novoDesligamento: Omit<Desligamento, "id">) => {
@@ -300,6 +651,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: Date.now(),
     }
     setDesligamentos((prev) => [...prev, desligamento])
+    logActivity("Criar", "Desligamento", desligamento.id, `Desligamento de "${desligamento.nome}" registrado`)
   }
 
   const addDadosDiarios = (novosDados: Omit<DadosDiarios, "id">) => {
@@ -308,6 +660,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: Date.now(),
     }
     setDadosDiarios((prev) => [...prev, dados])
+    logActivity("Criar", "Dados Diários", dados.id, `Dados diários adicionados para ${dados.date}`)
   }
 
   const addEstatisticasCarteira = (novasStats: Omit<EstatisticasCarteira, "id">) => {
@@ -316,24 +669,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: Date.now(),
     }
     setEstatisticasCarteiras((prev) => [...prev, stats])
+    logActivity("Criar", "Estatísticas", stats.id, `Estatísticas adicionadas para carteira "${stats.carteira}"`)
   }
 
   const updateEstatisticasCarteira = (id: number, statsAtualizadas: Partial<EstatisticasCarteira>) => {
     setEstatisticasCarteiras((prev) =>
       prev.map((stats) => (stats.id === id ? { ...stats, ...statsAtualizadas } : stats)),
     )
+    logActivity("Editar", "Estatísticas", id, `Estatísticas de carteira atualizadas`)
   }
 
   const deleteEstatisticasCarteira = (id: number) => {
+    const stats = estatisticasCarteiras.find((s) => s.id === id)
     setEstatisticasCarteiras((prev) => prev.filter((s) => s.id !== id))
+    if (stats) {
+      logActivity("Excluir", "Estatísticas", id, `Estatísticas da carteira "${stats.carteira}" excluídas`)
+    }
   }
 
   const updateDadosDiarios = (id: number, dadosAtualizados: Partial<DadosDiarios>) => {
     setDadosDiarios((prev) => prev.map((dados) => (dados.id === id ? { ...dados, ...dadosAtualizados } : dados)))
+    logActivity("Editar", "Dados Diários", id, `Dados diários atualizados`)
   }
 
   const deleteDadosDiarios = (id: number) => {
+    const dados = dadosDiarios.find((d) => d.id === id)
     setDadosDiarios((prev) => prev.filter((d) => d.id !== id))
+    if (dados) {
+      logActivity("Excluir", "Dados Diários", id, `Dados diários de ${dados.date} excluídos`)
+    }
   }
 
   const updateTreinamento = (id: number, treinamentoAtualizado: Partial<Treinamento>) => {
@@ -366,6 +730,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             }),
           )
         }
+      }
+
+      if (treinamentoAntigo) {
+        logActivity("Editar", "Treinamento", id, `Treinamento "${treinamentoAntigo.assunto}" atualizado`)
       }
 
       return updated
@@ -403,9 +771,136 @@ export function DataProvider({ children }: { children: ReactNode }) {
             return carteira
           }),
         )
+
+        logActivity("Excluir", "Treinamento", id, `Treinamento "${treinamentoToDelete.assunto}" excluído`)
       }
 
       return updated
+    })
+  }
+
+  const updateDesligamento = (id: number, desligamentoAtualizado: Partial<Desligamento>) => {
+    setDesligamentos((prev) =>
+      prev.map((desligamento) =>
+        desligamento.id === id ? { ...desligamento, ...desligamentoAtualizado } : desligamento,
+      ),
+    )
+    logActivity("Editar", "Desligamento", id, `Desligamento atualizado`)
+  }
+
+  const deleteDesligamento = (id: number) => {
+    const desligamento = desligamentos.find((d) => d.id === id)
+    setDesligamentos((prev) => prev.filter((d) => d.id !== id))
+    if (desligamento) {
+      logActivity("Excluir", "Desligamento", id, `Desligamento de "${desligamento.nome}" excluído`)
+    }
+  }
+
+  const addOperador = (novoOperador: Omit<Operador, "id">) => {
+    const operador: Operador = {
+      ...novoOperador,
+      id: Date.now(),
+    }
+    setOperadores((prev) => [...prev, operador])
+    logActivity("Criar", "Operador", operador.id, `Operador "${operador.nome}" adicionado`)
+  }
+
+  const updateOperador = (id: number, operadorAtualizado: Partial<Operador>) => {
+    setOperadores((prev) =>
+      prev.map((operador) => (operador.id === id ? { ...operador, ...operadorAtualizado } : operador)),
+    )
+    logActivity("Editar", "Operador", id, `Operador atualizado`)
+  }
+
+  const deleteOperador = (id: number) => {
+    const operador = operadores.find((o) => o.id === id)
+    setOperadores((prev) => prev.filter((o) => o.id !== id))
+    if (operador) {
+      logActivity("Excluir", "Operador", id, `Operador "${operador.nome}" excluído`)
+    }
+  }
+
+  const importOperadores = (novosOperadores: Omit<Operador, "id">[]) => {
+    const operadoresComId = novosOperadores.map((operador, index) => ({
+      ...operador,
+      id: Date.now() + index,
+    }))
+    setOperadores((prev) => [...prev, ...operadoresComId])
+    logActivity("Importar", "Operadores", "bulk", `${novosOperadores.length} operadores importados`)
+  }
+
+  const addAgente = (novoAgente: Omit<Agente, "id">) => {
+    const agente: Agente = {
+      ...novoAgente,
+      id: Date.now(),
+    }
+    setAgentes((prev) => [...prev, agente])
+    logActivity("Criar", "Agente", agente.id, `Agente "${agente.operador}" adicionado`)
+  }
+
+  const updateAgente = (id: number, agenteAtualizado: Partial<Agente>) => {
+    setAgentes((prev) => prev.map((agente) => (agente.id === id ? { ...agente, ...agenteAtualizado } : agente)))
+    logActivity("Editar", "Agente", id, `Agente atualizado`)
+  }
+
+  const deleteAgente = (id: number) => {
+    const agente = agentes.find((a) => a.id === id)
+    setAgentes((prev) => prev.filter((a) => a.id !== id))
+    if (agente) {
+      logActivity("Excluir", "Agente", id, `Agente "${agente.operador}" excluído`)
+    }
+  }
+
+  const importAgentes = (novosAgentes: Omit<Agente, "id">[]) => {
+    const agentesComId = novosAgentes.map((agente, index) => ({
+      ...agente,
+      id: Date.now() + index,
+    }))
+    setAgentes((prev) => [...prev, ...agentesComId])
+    logActivity("Importar", "Agentes", "bulk", `${novosAgentes.length} agentes importados`)
+  }
+
+  const addOrUpdateMonitoringMonth = (monthData: MonthData) => {
+    setMonitoringData((prev) => {
+      const existingIndex = prev.findIndex((m) => m.year === monthData.year && m.month === monthData.month)
+      if (existingIndex >= 0) {
+        const updated = [...prev]
+        updated[existingIndex] = monthData
+        logActivity("Editar", "Monitoria", `${monthData.year}-${monthData.month}`, `Dados de monitoria atualizados`)
+        return updated
+      }
+      logActivity("Criar", "Monitoria", `${monthData.year}-${monthData.month}`, `Dados de monitoria adicionados`)
+      return [...prev, monthData]
+    })
+  }
+
+  const deleteMonitoringWeek = (year: number, month: number, weekId: string) => {
+    setMonitoringData((prev) => {
+      return prev.map((monthData) => {
+        if (monthData.year === year && monthData.month === month) {
+          logActivity("Excluir", "Monitoria", weekId, `Semana de monitoria excluída`)
+          return {
+            ...monthData,
+            weeks: monthData.weeks.filter((week) => week.id !== weekId),
+          }
+        }
+        return monthData
+      })
+    })
+  }
+
+  const updateMonitoringWeek = (year: number, month: number, weekId: string, weekData: WeekData) => {
+    setMonitoringData((prev) => {
+      return prev.map((monthData) => {
+        if (monthData.year === year && monthData.month === month) {
+          logActivity("Editar", "Monitoria", weekId, `Semana de monitoria atualizada`)
+          return {
+            ...monthData,
+            weeks: monthData.weeks.map((week) => (week.id === weekId ? weekData : week)),
+          }
+        }
+        return monthData
+      })
     })
   }
 
@@ -463,84 +958,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const updateDesligamento = (id: number, desligamentoAtualizado: Partial<Desligamento>) => {
-    setDesligamentos((prev) =>
-      prev.map((desligamento) =>
-        desligamento.id === id ? { ...desligamento, ...desligamentoAtualizado } : desligamento,
-      ),
-    )
-  }
-
-  const deleteDesligamento = (id: number) => {
-    setDesligamentos((prev) => prev.filter((d) => d.id !== id))
-  }
-
-  const addOperador = (novoOperador: Omit<Operador, "id">) => {
-    const operador: Operador = {
-      ...novoOperador,
-      id: Date.now(),
-    }
-    setOperadores((prev) => [...prev, operador])
-  }
-
-  const updateOperador = (id: number, operadorAtualizado: Partial<Operador>) => {
-    setOperadores((prev) =>
-      prev.map((operador) => (operador.id === id ? { ...operador, ...operadorAtualizado } : operador)),
-    )
-  }
-
-  const deleteOperador = (id: number) => {
-    setOperadores((prev) => prev.filter((o) => o.id !== id))
-  }
-
-  const importOperadores = (novosOperadores: Omit<Operador, "id">[]) => {
-    const operadoresComId = novosOperadores.map((operador, index) => ({
-      ...operador,
-      id: Date.now() + index,
-    }))
-    setOperadores((prev) => [...prev, ...operadoresComId])
-  }
-
-  const addOrUpdateMonitoringMonth = (monthData: MonthData) => {
-    setMonitoringData((prev) => {
-      const existingIndex = prev.findIndex((m) => m.year === monthData.year && m.month === monthData.month)
-      if (existingIndex >= 0) {
-        const updated = [...prev]
-        updated[existingIndex] = monthData
-        return updated
-      }
-      return [...prev, monthData]
-    })
-  }
-
-  const deleteMonitoringWeek = (year: number, month: number, weekId: string) => {
-    setMonitoringData((prev) => {
-      return prev.map((monthData) => {
-        if (monthData.year === year && monthData.month === month) {
-          return {
-            ...monthData,
-            weeks: monthData.weeks.filter((week) => week.id !== weekId),
-          }
-        }
-        return monthData
-      })
-    })
-  }
-
-  const updateMonitoringWeek = (year: number, month: number, weekId: string, weekData: WeekData) => {
-    setMonitoringData((prev) => {
-      return prev.map((monthData) => {
-        if (monthData.year === year && monthData.month === month) {
-          return {
-            ...monthData,
-            weeks: monthData.weeks.map((week) => (week.id === weekId ? weekData : week)),
-          }
-        }
-        return monthData
-      })
-    })
-  }
-
   const getMonitoringStats = (year?: number, month?: number) => {
     let dataToAnalyze: MonthData[]
 
@@ -577,6 +994,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       totalPercent,
     }
     setTiaData((prev) => [...prev, entry].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
+    logActivity("Criar", "TIA", entry.id, `Entrada TIA adicionada para ${entry.date}`)
   }
 
   const updateTIAEntry = (id: string, updatedEntry: Partial<Omit<TIAEntry, "id">>) => {
@@ -592,10 +1010,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return entry
       }),
     )
+    logActivity("Editar", "TIA", id, `Entrada TIA atualizada`)
   }
 
   const deleteTIAEntry = (id: string) => {
+    const entry = tiaData.find((e) => e.id === id)
     setTiaData((prev) => prev.filter((entry) => entry.id !== id))
+    if (entry) {
+      logActivity("Excluir", "TIA", id, `Entrada TIA de ${entry.date} excluída`)
+    }
   }
 
   const getTIAStats = (year?: number, month?: number) => {
@@ -627,6 +1050,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       nome,
     }
     setMotivosDesligamento((prev) => [...prev, motivo])
+    logActivity("Criar", "Motivo Desligamento", motivo.id, `Motivo "${nome}" criado`)
   }
 
   const updateMotivoDesligamento = (id: number, nome: string) => {
@@ -639,6 +1063,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setDesligamentos((prevDesligamentos) =>
           prevDesligamentos.map((d) => (d.motivo === motivoAntigo.nome ? { ...d, motivo: nome } : d)),
         )
+        logActivity("Editar", "Motivo Desligamento", id, `Motivo renomeado`, [
+          { field: "Nome", oldValue: motivoAntigo.nome, newValue: nome },
+        ])
       }
 
       return updated
@@ -646,7 +1073,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }
 
   const deleteMotivoDesligamento = (id: number) => {
+    const motivo = motivosDesligamento.find((m) => m.id === id)
     setMotivosDesligamento((prev) => prev.filter((m) => m.id !== id))
+    if (motivo) {
+      logActivity("Excluir", "Motivo Desligamento", id, `Motivo "${motivo.nome}" excluído`)
+    }
+  }
+
+  const getActivityLogs = (filters?: {
+    dateRange?: { start: string; end: string }
+    user?: string
+    action?: string
+    entity?: string
+  }) => {
+    let filtered = activityLogs
+
+    if (filters?.dateRange?.start) {
+      filtered = filtered.filter((log) => new Date(log.timestamp) >= new Date(filters.dateRange!.start))
+    }
+    if (filters?.dateRange?.end) {
+      filtered = filtered.filter((log) => new Date(log.timestamp) <= new Date(filters.dateRange!.end))
+    }
+    if (filters?.user && filters.user !== "Todos os usuários") {
+      filtered = filtered.filter((log) => log.user === filters.user)
+    }
+    if (filters?.action && filters.action !== "Todas as ações") {
+      filtered = filtered.filter((log) => log.action === filters.action)
+    }
+    if (filters?.entity && filters.entity !== "Todas as entidades") {
+      filtered = filtered.filter((log) => log.entity === filters.entity)
+    }
+
+    return filtered
   }
 
   const value: DataContextType = {
@@ -661,6 +1119,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     dadosDiarios,
     estatisticasCarteiras,
     operadores,
+    agentes,
     monitoringData,
     tiaData,
     addCarteira,
@@ -685,6 +1144,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateOperador,
     deleteOperador,
     importOperadores,
+    addAgente,
+    updateAgente,
+    deleteAgente,
+    importAgentes,
     getCapacitacaoStats,
     getDesligamentosStats,
     getTreinadosStats,
@@ -696,6 +1159,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateTIAEntry,
     deleteTIAEntry,
     getTIAStats,
+    activityLogs,
+    getActivityLogs,
   }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

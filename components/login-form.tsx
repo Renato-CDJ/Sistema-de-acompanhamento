@@ -80,55 +80,62 @@ export function LoginForm() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background to-accent/20 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0 bg-card/95 backdrop-blur">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-card/95 backdrop-blur animate-in zoom-in duration-500">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center">
+          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center animate-in zoom-in duration-700 hover:scale-110 transition-transform">
             <Building2 className="w-8 h-8 text-primary-foreground" />
           </div>
-          <div>
+          <div className="animate-in slide-in-from-bottom duration-500 delay-100">
             <CardTitle className="text-2xl font-bold text-balance">Sistema de Acompanhamento</CardTitle>
             <CardDescription className="text-muted-foreground">Faça login para acessar o sistema</CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="animate-in slide-in-from-bottom duration-500 delay-200">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <div className="relative group">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 transition-all focus:ring-2 focus:ring-primary/20"
                   required
                 />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <div className="relative group">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 transition-all focus:ring-2 focus:ring-primary/20"
                   required
                 />
               </div>
             </div>
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="animate-in slide-in-from-top duration-300">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Entrando..." : "Entrar"}
+            <Button type="submit" className="w-full shadow-lg hover:shadow-xl transition-all" disabled={isLoading}>
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Entrando...
+                </span>
+              ) : (
+                "Entrar"
+              )}
             </Button>
           </form>
         </CardContent>
