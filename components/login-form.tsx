@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/contexts/auth-context"
-import { authenticateUser } from "@/lib/auth"
+import { getUserProfile } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/client"
 import { Building2, Lock, Mail } from "lucide-react"
 
 export function LoginForm() {
@@ -65,13 +66,33 @@ export function LoginForm() {
     setError("")
 
     try {
-      const user = await authenticateUser(email, password)
-      if (user) {
-        login(user)
-      } else {
+      const supabase = createClient()
+
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
         setError("Email ou senha inválidos")
+        return
+      }
+
+      if (data.user) {
+        const profile = await getUserProfile(data.user.id)
+        if (profile) {
+          if (profile.blocked) {
+            await supabase.auth.signOut()
+            setError("Usuário bloqueado. Entre em contato com o administrador.")
+            return
+          }
+          login(profile)
+        } else {
+          setError("Erro ao carregar perfil do usuário")
+        }
       }
     } catch (err) {
+      console.error("[v0] Login error:", err)
       setError("Erro ao fazer login")
     } finally {
       setIsLoading(false)

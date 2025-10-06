@@ -14,29 +14,41 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { loadUsers, saveUsers } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/client"
 
 export function UserProfileDialog() {
   const { user, login } = useAuth()
   const [open, setOpen] = useState(false)
   const [cargo, setCargo] = useState(user?.cargo || "")
+  const [isSaving, setIsSaving] = useState(false)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!user) return
 
-    const updatedUser = {
-      ...user,
-      cargo,
+    setIsSaving(true)
+    try {
+      const supabase = createClient()
+
+      // Update profile in Supabase
+      const { error } = await supabase.from("profiles").update({ cargo }).eq("id", user.id)
+
+      if (error) {
+        console.error("[v0] Error updating profile:", error)
+        return
+      }
+
+      // Update current user session
+      const updatedUser = {
+        ...user,
+        cargo,
+      }
+      login(updatedUser)
+      setOpen(false)
+    } catch (error) {
+      console.error("[v0] Error in handleSave:", error)
+    } finally {
+      setIsSaving(false)
     }
-
-    // Update in localStorage
-    const users = loadUsers()
-    const updatedUsers = users.map((u) => (u.id === user.id ? updatedUser : u))
-    saveUsers(updatedUsers)
-
-    // Update current user session
-    login(updatedUser)
-    setOpen(false)
   }
 
   if (!user) return null
@@ -112,7 +124,9 @@ export function UserProfileDialog() {
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>Salvar Alterações</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Salvando..." : "Salvar Alterações"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -1,7 +1,9 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, type ReactNode } from "react"
 import { useAuth } from "@/contexts/auth-context"
+import { createBrowserClient } from "@/lib/supabase/client"
+import useSWR, { mutate } from "swr"
 
 // Tipos de dados
 interface Carteira {
@@ -124,49 +126,49 @@ interface DataContextType {
   carteiras: Carteira[]
   treinamentos: Treinamento[]
   assuntos: string[]
-  addCarteira: (name: string) => void
-  updateCarteira: (id: string, name: string) => void
-  deleteCarteira: (id: string) => void
-  addTreinamento: (treinamento: Omit<Treinamento, "id">) => void
-  addAssunto: (assunto: string) => void
-  updateAssunto: (index: number, novoAssunto: string) => void
-  deleteAssunto: (index: number) => void
-  updateTreinamento: (id: number, treinamento: Partial<Treinamento>) => void
-  deleteTreinamento: (id: number) => void
+  addCarteira: (name: string) => Promise<void>
+  updateCarteira: (id: string, name: string) => Promise<void>
+  deleteCarteira: (id: string) => Promise<void>
+  addTreinamento: (treinamento: Omit<Treinamento, "id">) => Promise<void>
+  addAssunto: (assunto: string) => Promise<void>
+  updateAssunto: (index: number, novoAssunto: string) => Promise<void>
+  deleteAssunto: (index: number) => Promise<void>
+  updateTreinamento: (id: number, treinamento: Partial<Treinamento>) => Promise<void>
+  deleteTreinamento: (id: number) => Promise<void>
 
   // Desligamentos
   desligamentos: Desligamento[]
   motivosDesligamento: MotivoDesligamento[]
-  addMotivoDesligamento: (nome: string) => void
-  updateMotivoDesligamento: (id: number, nome: string) => void
-  deleteMotivoDesligamento: (id: number) => void
-  addDesligamento: (desligamento: Omit<Desligamento, "id">) => void
-  updateDesligamento: (id: number, desligamento: Partial<Desligamento>) => void
-  deleteDesligamento: (id: number) => void
+  addMotivoDesligamento: (nome: string) => Promise<void>
+  updateMotivoDesligamento: (id: number, nome: string) => Promise<void>
+  deleteMotivoDesligamento: (id: number) => Promise<void>
+  addDesligamento: (desligamento: Omit<Desligamento, "id">) => Promise<void>
+  updateDesligamento: (id: number, desligamento: Partial<Desligamento>) => Promise<void>
+  deleteDesligamento: (id: number) => Promise<void>
 
   // Quadro
   dadosDiarios: DadosDiarios[]
   estatisticasCarteiras: EstatisticasCarteira[]
-  addDadosDiarios: (dados: Omit<DadosDiarios, "id">) => void
-  updateDadosDiarios: (id: number, dados: Partial<DadosDiarios>) => void
-  deleteDadosDiarios: (id: number) => void
-  addEstatisticasCarteira: (stats: Omit<EstatisticasCarteira, "id">) => void
-  updateEstatisticasCarteira: (id: number, stats: Partial<EstatisticasCarteira>) => void
-  deleteEstatisticasCarteira: (id: number) => void
+  addDadosDiarios: (dados: Omit<DadosDiarios, "id">) => Promise<void>
+  updateDadosDiarios: (id: number, dados: Partial<DadosDiarios>) => Promise<void>
+  deleteDadosDiarios: (id: number) => Promise<void>
+  addEstatisticasCarteira: (stats: Omit<EstatisticasCarteira, "id">) => Promise<void>
+  updateEstatisticasCarteira: (id: number, stats: Partial<EstatisticasCarteira>) => Promise<void>
+  deleteEstatisticasCarteira: (id: number) => Promise<void>
 
   // Operadores
   operadores: Operador[]
-  addOperador: (operador: Omit<Operador, "id">) => void
-  updateOperador: (id: number, operador: Partial<Operador>) => void
-  deleteOperador: (id: number) => void
-  importOperadores: (operadores: Omit<Operador, "id">[]) => void
+  addOperador: (operador: Omit<Operador, "id">) => Promise<void>
+  updateOperador: (id: number, operador: Partial<Operador>) => Promise<void>
+  deleteOperador: (id: number) => Promise<void>
+  importOperadores: (operadores: Omit<Operador, "id">[]) => Promise<void>
 
   // Agentes
   agentes: Agente[]
-  addAgente: (agente: Omit<Agente, "id">) => void
-  updateAgente: (id: number, agente: Partial<Agente>) => void
-  deleteAgente: (id: number) => void
-  importAgentes: (agentes: Omit<Agente, "id">[]) => void
+  addAgente: (agente: Omit<Agente, "id">) => Promise<void>
+  updateAgente: (id: number, agente: Partial<Agente>) => Promise<void>
+  deleteAgente: (id: number) => Promise<void>
+  importAgentes: (agentes: Omit<Agente, "id">[]) => Promise<void>
 
   // Estatísticas calculadas
   getCapacitacaoStats: () => {
@@ -197,9 +199,9 @@ interface DataContextType {
   }
 
   monitoringData: MonthData[]
-  addOrUpdateMonitoringMonth: (monthData: MonthData) => void
-  deleteMonitoringWeek: (year: number, month: number, weekId: string) => void
-  updateMonitoringWeek: (year: number, month: number, weekId: string, weekData: WeekData) => void
+  addOrUpdateMonitoringMonth: (monthData: MonthData) => Promise<void>
+  deleteMonitoringWeek: (year: number, month: number, weekId: string) => Promise<void>
+  updateMonitoringWeek: (year: number, month: number, weekId: string, weekData: WeekData) => Promise<void>
   getMonitoringStats: (
     year?: number,
     month?: number,
@@ -213,9 +215,9 @@ interface DataContextType {
 
   // TIA data
   tiaData: TIAEntry[]
-  addTIAEntry: (entry: Omit<TIAEntry, "id" | "totalPercent">) => void
-  updateTIAEntry: (id: string, entry: Partial<Omit<TIAEntry, "id">>) => void
-  deleteTIAEntry: (id: string) => void
+  addTIAEntry: (entry: Omit<TIAEntry, "id" | "totalPercent">) => Promise<void>
+  updateTIAEntry: (id: string, entry: Partial<Omit<TIAEntry, "id">>) => Promise<void>
+  deleteTIAEntry: (id: string) => Promise<void>
   getTIAStats: (
     year?: number,
     month?: number,
@@ -241,667 +243,710 @@ const initialAssuntos: string[] = []
 
 const initialMotivosDesligamento: MotivoDesligamento[] = []
 
+const fetcher = async (table: string) => {
+  const supabase = createBrowserClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session) {
+    throw new Error("Not authenticated")
+  }
+
+  const { data, error } = await supabase.from(table).select("*").order("created_at", { ascending: false })
+
+  if (error) {
+    console.error(`Error fetching ${table}:`, error)
+    throw error
+  }
+
+  return data || []
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
+  const supabase = createBrowserClient()
 
-  const [carteiras, setCarteiras] = useState<Carteira[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("carteiras")
-        return stored ? JSON.parse(stored) : []
-      } catch (error) {
-        console.error("Error loading carteiras from localStorage:", error)
-        return []
-      }
-    }
-    return []
+  const shouldFetch = !isLoading && !!user
+
+  const { data: carteiras = [] } = useSWR<Carteira[]>(shouldFetch ? "carteiras" : null, fetcher)
+  const { data: treinamentos = [] } = useSWR<Treinamento[]>(shouldFetch ? "treinamentos" : null, fetcher)
+  const { data: assuntos = [] } = useSWR<string[]>(shouldFetch ? "assuntos" : null, async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session) throw new Error("Not authenticated")
+
+    const { data, error } = await supabase.from("assuntos").select("nome").order("created_at", { ascending: true })
+    if (error) throw error
+    return data?.map((a) => a.nome) || initialAssuntos
   })
+  const { data: desligamentos = [] } = useSWR<Desligamento[]>(shouldFetch ? "desligamentos" : null, fetcher)
+  const { data: motivosDesligamento = [] } = useSWR<MotivoDesligamento[]>(
+    shouldFetch ? "motivos_desligamento" : null,
+    fetcher,
+  )
+  const { data: dadosDiarios = [] } = useSWR<DadosDiarios[]>(shouldFetch ? "dados_diarios" : null, fetcher)
+  const { data: estatisticasCarteiras = [] } = useSWR<EstatisticasCarteira[]>(
+    shouldFetch ? "estatisticas_carteiras" : null,
+    fetcher,
+  )
+  const { data: operadores = [] } = useSWR<Operador[]>(shouldFetch ? "operadores" : null, fetcher)
+  const { data: agentes = [] } = useSWR<Agente[]>(shouldFetch ? "agentes" : null, fetcher)
+  const { data: monitoringData = [] } = useSWR<MonthData[]>(shouldFetch ? "monitoring_data" : null, fetcher)
+  const { data: tiaData = [] } = useSWR<TIAEntry[]>(shouldFetch ? "tia_data" : null, fetcher)
+  const { data: activityLogs = [] } = useSWR<ActivityLog[]>(shouldFetch ? "activity_logs" : null, fetcher)
 
-  const [treinamentos, setTreinamentos] = useState<Treinamento[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("treinamentos")
-        return stored ? JSON.parse(stored) : []
-      } catch (error) {
-        console.error("Error loading treinamentos from localStorage:", error)
-        return []
-      }
-    }
-    return []
-  })
-
-  const [assuntos, setAssuntos] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("assuntos")
-        return stored ? JSON.parse(stored) : initialAssuntos
-      } catch (error) {
-        console.error("Error loading assuntos from localStorage:", error)
-        return initialAssuntos
-      }
-    }
-    return initialAssuntos
-  })
-
-  const [desligamentos, setDesligamentos] = useState<Desligamento[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("desligamentos")
-        return stored ? JSON.parse(stored) : []
-      } catch (error) {
-        console.error("Error loading desligamentos from localStorage:", error)
-        return []
-      }
-    }
-    return []
-  })
-
-  const [motivosDesligamento, setMotivosDesligamento] = useState<MotivoDesligamento[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("motivosDesligamento")
-        return stored ? JSON.parse(stored) : initialMotivosDesligamento
-      } catch (error) {
-        console.error("Error loading motivosDesligamento from localStorage:", error)
-        return initialMotivosDesligamento
-      }
-    }
-    return initialMotivosDesligamento
-  })
-
-  const [dadosDiarios, setDadosDiarios] = useState<DadosDiarios[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("dadosDiarios")
-        return stored ? JSON.parse(stored) : []
-      } catch (error) {
-        console.error("Error loading dadosDiarios from localStorage:", error)
-        return []
-      }
-    }
-    return []
-  })
-
-  const [estatisticasCarteiras, setEstatisticasCarteiras] = useState<EstatisticasCarteira[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("estatisticasCarteiras")
-        return stored ? JSON.parse(stored) : []
-      } catch (error) {
-        console.error("Error loading estatisticasCarteiras from localStorage:", error)
-        return []
-      }
-    }
-    return []
-  })
-
-  const [operadores, setOperadores] = useState<Operador[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("operadores")
-        return stored ? JSON.parse(stored) : []
-      } catch (error) {
-        console.error("Error loading operadores from localStorage:", error)
-        return []
-      }
-    }
-    return []
-  })
-
-  const [agentes, setAgentes] = useState<Agente[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("agentes")
-        return stored ? JSON.parse(stored) : []
-      } catch (error) {
-        console.error("Error loading agentes from localStorage:", error)
-        return []
-      }
-    }
-    return []
-  })
-
-  const [monitoringData, setMonitoringData] = useState<MonthData[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("monitoringData")
-        return stored ? JSON.parse(stored) : []
-      } catch (error) {
-        console.error("Error loading monitoringData from localStorage:", error)
-        return []
-      }
-    }
-    return []
-  })
-
-  const [tiaData, setTiaData] = useState<TIAEntry[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("tiaData")
-        return stored ? JSON.parse(stored) : []
-      } catch (error) {
-        console.error("Error loading tiaData from localStorage:", error)
-        return []
-      }
-    }
-    return []
-  })
-
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("activityLogs")
-        return stored ? JSON.parse(stored) : []
-      } catch (error) {
-        console.error("Error loading activityLogs from localStorage:", error)
-        return []
-      }
-    }
-    return []
-  })
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("carteiras", JSON.stringify(carteiras))
-      } catch (error) {
-        console.error("Error saving carteiras to localStorage:", error)
-      }
-    }
-  }, [carteiras])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("treinamentos", JSON.stringify(treinamentos))
-      } catch (error) {
-        console.error("Error saving treinamentos to localStorage:", error)
-      }
-    }
-  }, [treinamentos])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("assuntos", JSON.stringify(assuntos))
-      } catch (error) {
-        console.error("Error saving assuntos to localStorage:", error)
-      }
-    }
-  }, [assuntos])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("desligamentos", JSON.stringify(desligamentos))
-      } catch (error) {
-        console.error("Error saving desligamentos to localStorage:", error)
-      }
-    }
-  }, [desligamentos])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("motivosDesligamento", JSON.stringify(motivosDesligamento))
-      } catch (error) {
-        console.error("Error saving motivosDesligamento to localStorage:", error)
-      }
-    }
-  }, [motivosDesligamento])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("dadosDiarios", JSON.stringify(dadosDiarios))
-      } catch (error) {
-        console.error("Error saving dadosDiarios to localStorage:", error)
-      }
-    }
-  }, [dadosDiarios])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("estatisticasCarteiras", JSON.stringify(estatisticasCarteiras))
-      } catch (error) {
-        console.error("Error saving estatisticasCarteiras to localStorage:", error)
-      }
-    }
-  }, [estatisticasCarteiras])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("operadores", JSON.stringify(operadores))
-      } catch (error) {
-        console.error("Error saving operadores to localStorage:", error)
-      }
-    }
-  }, [operadores])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("agentes", JSON.stringify(agentes))
-      } catch (error) {
-        console.error("Error saving agentes to localStorage:", error)
-      }
-    }
-  }, [agentes])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("monitoringData", JSON.stringify(monitoringData))
-      } catch (error) {
-        console.error("Error saving monitoringData to localStorage:", error)
-      }
-    }
-  }, [monitoringData])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("tiaData", JSON.stringify(tiaData))
-      } catch (error) {
-        console.error("Error saving tiaData to localStorage:", error)
-      }
-    }
-  }, [tiaData])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("activityLogs", JSON.stringify(activityLogs))
-      } catch (error) {
-        console.error("Error saving activityLogs to localStorage:", error)
-      }
-    }
-  }, [activityLogs])
-
-  const logActivity = (
+  const logActivity = async (
     action: string,
     entity: string,
     entityId: string | number,
     details: string,
     changes?: ActivityLog["changes"],
   ) => {
-    const log: ActivityLog = {
-      id: `${Date.now()}-${Math.random()}`,
+    const log = {
       timestamp: new Date().toISOString(),
       user: user?.username || "Sistema",
       action,
       entity,
-      entityId,
+      entity_id: entityId.toString(),
       details,
-      changes,
+      changes: changes || null,
     }
-    setActivityLogs((prev) => [log, ...prev])
+
+    const { error } = await supabase.from("activity_logs").insert([log])
+    if (error) console.error("Error logging activity:", error)
+
+    // Revalidate activity logs
+    mutate("activity_logs")
   }
 
-  const addCarteira = (name: string) => {
-    const carteira: Carteira = {
-      id: Date.now().toString(),
+  const addCarteira = async (name: string) => {
+    const carteira = {
       name: name,
       total: 0,
       aplicados: 0,
       pendentes: 0,
       taxa: 0,
-      createdAt: new Date().toISOString(),
     }
-    setCarteiras((prev) => [...prev, carteira])
-    logActivity("Criar", "Carteira", carteira.id, `Carteira "${name}" criada`)
+
+    const { error } = await supabase.from("carteiras").insert([carteira])
+    if (error) {
+      console.error("Error adding carteira:", error)
+      return
+    }
+
+    await logActivity("Criar", "Carteira", name, `Carteira "${name}" criada`)
+    mutate("carteiras")
   }
 
-  const updateCarteira = (id: string, newName: string) => {
+  const updateCarteira = async (id: string, newName: string) => {
     const oldCarteira = carteiras.find((c) => c.id === id)
-    setCarteiras((prev) => prev.map((carteira) => (carteira.id === id ? { ...carteira, name: newName } : carteira)))
+
+    const { error } = await supabase.from("carteiras").update({ name: newName }).eq("id", id)
+    if (error) {
+      console.error("Error updating carteira:", error)
+      return
+    }
+
     if (oldCarteira) {
-      logActivity("Editar", "Carteira", id, `Carteira renomeada`, [
+      await logActivity("Editar", "Carteira", id, `Carteira renomeada`, [
         { field: "Nome", oldValue: oldCarteira.name, newValue: newName },
       ])
     }
+    mutate("carteiras")
   }
 
-  const deleteCarteira = (id: string) => {
+  const deleteCarteira = async (id: string) => {
     const carteira = carteiras.find((c) => c.id === id)
-    setCarteiras((prev) => prev.filter((c) => c.id !== id))
-    if (carteira) {
-      logActivity("Excluir", "Carteira", id, `Carteira "${carteira.name}" excluída`)
+
+    const { error } = await supabase.from("carteiras").delete().eq("id", id)
+    if (error) {
+      console.error("Error deleting carteira:", error)
+      return
     }
+
+    if (carteira) {
+      await logActivity("Excluir", "Carteira", id, `Carteira "${carteira.name}" excluída`)
+    }
+    mutate("carteiras")
   }
 
-  const addTreinamento = (novoTreinamento: Omit<Treinamento, "id">) => {
-    const treinamento: Treinamento = {
-      ...novoTreinamento,
-      id: Date.now(),
+  const addTreinamento = async (novoTreinamento: Omit<Treinamento, "id">) => {
+    const { error } = await supabase.from("treinamentos").insert([novoTreinamento])
+    if (error) {
+      console.error("Error adding treinamento:", error)
+      return
     }
 
-    setTreinamentos((prev) => [...prev, treinamento])
+    // Update carteira stats
+    const carteira = carteiras.find((c) => c.name === novoTreinamento.carteira)
+    if (carteira) {
+      const newTotal = carteira.total + novoTreinamento.quantidade
+      const newAplicados =
+        novoTreinamento.status === "Aplicado" ? carteira.aplicados + novoTreinamento.quantidade : carteira.aplicados
+      const newPendentes =
+        novoTreinamento.status === "Pendente" ? carteira.pendentes + novoTreinamento.quantidade : carteira.pendentes
+      const newTaxa = newTotal > 0 ? Math.round((newAplicados / newTotal) * 100 * 10) / 10 : 0
 
-    setCarteiras((prev) =>
-      prev.map((carteira) => {
-        if (carteira.name === treinamento.carteira) {
-          const newTotal = carteira.total + treinamento.quantidade
-          const newAplicados =
-            treinamento.status === "Aplicado" ? carteira.aplicados + treinamento.quantidade : carteira.aplicados
-          const newPendentes =
-            treinamento.status === "Pendente" ? carteira.pendentes + treinamento.quantidade : carteira.pendentes
+      await supabase
+        .from("carteiras")
+        .update({
+          total: newTotal,
+          aplicados: newAplicados,
+          pendentes: newPendentes,
+          taxa: newTaxa,
+        })
+        .eq("id", carteira.id)
+    }
+
+    await logActivity(
+      "Criar",
+      "Treinamento",
+      novoTreinamento.assunto,
+      `Treinamento "${novoTreinamento.assunto}" adicionado para ${novoTreinamento.quantidade} operadores`,
+    )
+
+    mutate("treinamentos")
+    mutate("carteiras")
+  }
+
+  const addAssunto = async (novoAssunto: string) => {
+    const { error } = await supabase.from("assuntos").insert([{ nome: novoAssunto }])
+    if (error) {
+      console.error("Error adding assunto:", error)
+      return
+    }
+
+    await logActivity("Criar", "Assunto", novoAssunto, `Assunto "${novoAssunto}" criado`)
+    mutate("assuntos")
+  }
+
+  const updateAssunto = async (index: number, novoAssunto: string) => {
+    const assuntoAntigo = assuntos[index]
+
+    // Update the assunto in the database
+    const { data: assuntosData } = await supabase
+      .from("assuntos")
+      .select("id, nome")
+      .order("created_at", { ascending: true })
+    if (assuntosData && assuntosData[index]) {
+      await supabase.from("assuntos").update({ nome: novoAssunto }).eq("id", assuntosData[index].id)
+    }
+
+    // Update all treinamentos that use this assunto
+    await supabase.from("treinamentos").update({ assunto: novoAssunto }).eq("assunto", assuntoAntigo)
+
+    // Update all operadores that use this assunto
+    await supabase.from("operadores").update({ assunto: novoAssunto }).eq("assunto", assuntoAntigo)
+
+    await logActivity("Editar", "Assunto", index, `Assunto renomeado`, [
+      { field: "Nome", oldValue: assuntoAntigo, newValue: novoAssunto },
+    ])
+
+    mutate("assuntos")
+    mutate("treinamentos")
+    mutate("operadores")
+  }
+
+  const deleteAssunto = async (index: number) => {
+    const assunto = assuntos[index]
+
+    const { data: assuntosData } = await supabase.from("assuntos").select("id").order("created_at", { ascending: true })
+    if (assuntosData && assuntosData[index]) {
+      await supabase.from("assuntos").delete().eq("id", assuntosData[index].id)
+    }
+
+    await logActivity("Excluir", "Assunto", index, `Assunto "${assunto}" excluído`)
+    mutate("assuntos")
+  }
+
+  const addDesligamento = async (novoDesligamento: Omit<Desligamento, "id">) => {
+    const { error } = await supabase.from("desligamentos").insert([novoDesligamento])
+    if (error) {
+      console.error("Error adding desligamento:", error)
+      return
+    }
+
+    await logActivity(
+      "Criar",
+      "Desligamento",
+      novoDesligamento.nome,
+      `Desligamento de "${novoDesligamento.nome}" registrado`,
+    )
+    mutate("desligamentos")
+  }
+
+  const updateDesligamento = async (id: number, desligamentoAtualizado: Partial<Desligamento>) => {
+    const { error } = await supabase.from("desligamentos").update(desligamentoAtualizado).eq("id", id)
+    if (error) {
+      console.error("Error updating desligamento:", error)
+      return
+    }
+
+    await logActivity("Editar", "Desligamento", id, `Desligamento atualizado`)
+    mutate("desligamentos")
+  }
+
+  const deleteDesligamento = async (id: number) => {
+    const desligamento = desligamentos.find((d) => d.id === id)
+
+    const { error } = await supabase.from("desligamentos").delete().eq("id", id)
+    if (error) {
+      console.error("Error deleting desligamento:", error)
+      return
+    }
+
+    if (desligamento) {
+      await logActivity("Excluir", "Desligamento", id, `Desligamento de "${desligamento.nome}" excluído`)
+    }
+    mutate("desligamentos")
+  }
+
+  const addDadosDiarios = async (novosDados: Omit<DadosDiarios, "id">) => {
+    const { error } = await supabase.from("dados_diarios").insert([novosDados])
+    if (error) {
+      console.error("Error adding dados diarios:", error)
+      return
+    }
+
+    await logActivity("Criar", "Dados Diários", novosDados.date, `Dados diários adicionados para ${novosDados.date}`)
+    mutate("dados_diarios")
+  }
+
+  const updateDadosDiarios = async (id: number, dadosAtualizados: Partial<DadosDiarios>) => {
+    const { error } = await supabase.from("dados_diarios").update(dadosAtualizados).eq("id", id)
+    if (error) {
+      console.error("Error updating dados diarios:", error)
+      return
+    }
+
+    await logActivity("Editar", "Dados Diários", id, `Dados diários atualizados`)
+    mutate("dados_diarios")
+  }
+
+  const deleteDadosDiarios = async (id: number) => {
+    const dados = dadosDiarios.find((d) => d.id === id)
+
+    const { error } = await supabase.from("dados_diarios").delete().eq("id", id)
+    if (error) {
+      console.error("Error deleting dados diarios:", error)
+      return
+    }
+
+    if (dados) {
+      await logActivity("Excluir", "Dados Diários", id, `Dados diários de ${dados.date} excluídos`)
+    }
+    mutate("dados_diarios")
+  }
+
+  const addEstatisticasCarteira = async (novasStats: Omit<EstatisticasCarteira, "id">) => {
+    const { error } = await supabase.from("estatisticas_carteiras").insert([novasStats])
+    if (error) {
+      console.error("Error adding estatisticas:", error)
+      return
+    }
+
+    await logActivity(
+      "Criar",
+      "Estatísticas",
+      novasStats.carteira,
+      `Estatísticas adicionadas para carteira "${novasStats.carteira}"`,
+    )
+    mutate("estatisticas_carteiras")
+  }
+
+  const updateEstatisticasCarteira = async (id: number, statsAtualizadas: Partial<EstatisticasCarteira>) => {
+    const { error } = await supabase.from("estatisticas_carteiras").update(statsAtualizadas).eq("id", id)
+    if (error) {
+      console.error("Error updating estatisticas:", error)
+      return
+    }
+
+    await logActivity("Editar", "Estatísticas", id, `Estatísticas de carteira atualizadas`)
+    mutate("estatisticas_carteiras")
+  }
+
+  const deleteEstatisticasCarteira = async (id: number) => {
+    const stats = estatisticasCarteiras.find((s) => s.id === id)
+
+    const { error } = await supabase.from("estatisticas_carteiras").delete().eq("id", id)
+    if (error) {
+      console.error("Error deleting estatisticas:", error)
+      return
+    }
+
+    if (stats) {
+      await logActivity("Excluir", "Estatísticas", id, `Estatísticas da carteira "${stats.carteira}" excluídas`)
+    }
+    mutate("estatisticas_carteiras")
+  }
+
+  const updateTreinamento = async (id: number, treinamentoAtualizado: Partial<Treinamento>) => {
+    const { error } = await supabase.from("treinamentos").update(treinamentoAtualizado).eq("id", id)
+    if (error) {
+      console.error("Error updating treinamento:", error)
+      return
+    }
+
+    // Recalculate carteira stats if needed
+    if (treinamentoAtualizado.status || treinamentoAtualizado.carteira || treinamentoAtualizado.quantidade) {
+      // Fetch all treinamentos for affected carteiras and recalculate
+      const { data: allTreinamentos } = await supabase.from("treinamentos").select("*")
+      if (allTreinamentos) {
+        const carteiraNames = new Set(allTreinamentos.map((t) => t.carteira))
+        for (const carteiraName of carteiraNames) {
+          const treinamentosCarteira = allTreinamentos.filter((t) => t.carteira === carteiraName)
+          const newTotal = treinamentosCarteira.reduce((sum, t) => sum + t.quantidade, 0)
+          const newAplicados = treinamentosCarteira
+            .filter((t) => t.status === "Aplicado")
+            .reduce((sum, t) => sum + t.quantidade, 0)
+          const newPendentes = treinamentosCarteira
+            .filter((t) => t.status === "Pendente")
+            .reduce((sum, t) => sum + t.quantidade, 0)
           const newTaxa = newTotal > 0 ? Math.round((newAplicados / newTotal) * 100 * 10) / 10 : 0
 
-          return {
-            ...carteira,
+          await supabase
+            .from("carteiras")
+            .update({
+              total: newTotal,
+              aplicados: newAplicados,
+              pendentes: newPendentes,
+              taxa: newTaxa,
+            })
+            .eq("name", carteiraName)
+        }
+      }
+    }
+
+    await logActivity("Editar", "Treinamento", id, `Treinamento atualizado`)
+    mutate("treinamentos")
+    mutate("carteiras")
+  }
+
+  const deleteTreinamento = async (id: number) => {
+    const treinamentoToDelete = treinamentos.find((t) => t.id === id)
+
+    const { error } = await supabase.from("treinamentos").delete().eq("id", id)
+    if (error) {
+      console.error("Error deleting treinamento:", error)
+      return
+    }
+
+    // Recalculate carteira stats after deletion
+    if (treinamentoToDelete) {
+      const { data: allTreinamentos } = await supabase
+        .from("treinamentos")
+        .select("*")
+        .eq("carteira", treinamentoToDelete.carteira)
+      if (allTreinamentos) {
+        const newTotal = allTreinamentos.reduce((sum, t) => sum + t.quantidade, 0)
+        const newAplicados = allTreinamentos
+          .filter((t) => t.status === "Aplicado")
+          .reduce((sum, t) => sum + t.quantidade, 0)
+        const newPendentes = allTreinamentos
+          .filter((t) => t.status === "Pendente")
+          .reduce((sum, t) => sum + t.quantidade, 0)
+        const newTaxa = newTotal > 0 ? Math.round((newAplicados / newTotal) * 100 * 10) / 10 : 0
+
+        await supabase
+          .from("carteiras")
+          .update({
             total: newTotal,
             aplicados: newAplicados,
             pendentes: newPendentes,
             taxa: newTaxa,
-          }
-        }
-        return carteira
-      }),
-    )
-
-    logActivity(
-      "Criar",
-      "Treinamento",
-      treinamento.id,
-      `Treinamento "${treinamento.assunto}" adicionado para ${treinamento.quantidade} operadores`,
-    )
-  }
-
-  const addAssunto = (novoAssunto: string) => {
-    setAssuntos((prev) => [...prev, novoAssunto])
-    logActivity("Criar", "Assunto", novoAssunto, `Assunto "${novoAssunto}" criado`)
-  }
-
-  const updateAssunto = (index: number, novoAssunto: string) => {
-    setAssuntos((prev) => {
-      const novosAssuntos = [...prev]
-      const assuntoAntigo = novosAssuntos[index]
-      novosAssuntos[index] = novoAssunto
-
-      // Update all treinamentos that use this assunto
-      setTreinamentos((prevTreinamentos) =>
-        prevTreinamentos.map((t) => (t.assunto === assuntoAntigo ? { ...t, assunto: novoAssunto } : t)),
-      )
-
-      // Update all operadores that use this assunto
-      setOperadores((prevOperadores) =>
-        prevOperadores.map((o) => (o.assunto === assuntoAntigo ? { ...o, assunto: novoAssunto } : o)),
-      )
-
-      logActivity("Editar", "Assunto", index, `Assunto renomeado`, [
-        { field: "Nome", oldValue: assuntoAntigo, newValue: novoAssunto },
-      ])
-
-      return novosAssuntos
-    })
-  }
-
-  const deleteAssunto = (index: number) => {
-    const assunto = assuntos[index]
-    setAssuntos((prev) => prev.filter((_, i) => i !== index))
-    logActivity("Excluir", "Assunto", index, `Assunto "${assunto}" excluído`)
-  }
-
-  const addDesligamento = (novoDesligamento: Omit<Desligamento, "id">) => {
-    const desligamento: Desligamento = {
-      ...novoDesligamento,
-      id: Date.now(),
-    }
-    setDesligamentos((prev) => [...prev, desligamento])
-    logActivity("Criar", "Desligamento", desligamento.id, `Desligamento de "${desligamento.nome}" registrado`)
-  }
-
-  const addDadosDiarios = (novosDados: Omit<DadosDiarios, "id">) => {
-    const dados: DadosDiarios = {
-      ...novosDados,
-      id: Date.now(),
-    }
-    setDadosDiarios((prev) => [...prev, dados])
-    logActivity("Criar", "Dados Diários", dados.id, `Dados diários adicionados para ${dados.date}`)
-  }
-
-  const addEstatisticasCarteira = (novasStats: Omit<EstatisticasCarteira, "id">) => {
-    const stats: EstatisticasCarteira = {
-      ...novasStats,
-      id: Date.now(),
-    }
-    setEstatisticasCarteiras((prev) => [...prev, stats])
-    logActivity("Criar", "Estatísticas", stats.id, `Estatísticas adicionadas para carteira "${stats.carteira}"`)
-  }
-
-  const updateEstatisticasCarteira = (id: number, statsAtualizadas: Partial<EstatisticasCarteira>) => {
-    setEstatisticasCarteiras((prev) =>
-      prev.map((stats) => (stats.id === id ? { ...stats, ...statsAtualizadas } : stats)),
-    )
-    logActivity("Editar", "Estatísticas", id, `Estatísticas de carteira atualizadas`)
-  }
-
-  const deleteEstatisticasCarteira = (id: number) => {
-    const stats = estatisticasCarteiras.find((s) => s.id === id)
-    setEstatisticasCarteiras((prev) => prev.filter((s) => s.id !== id))
-    if (stats) {
-      logActivity("Excluir", "Estatísticas", id, `Estatísticas da carteira "${stats.carteira}" excluídas`)
-    }
-  }
-
-  const updateDadosDiarios = (id: number, dadosAtualizados: Partial<DadosDiarios>) => {
-    setDadosDiarios((prev) => prev.map((dados) => (dados.id === id ? { ...dados, ...dadosAtualizados } : dados)))
-    logActivity("Editar", "Dados Diários", id, `Dados diários atualizados`)
-  }
-
-  const deleteDadosDiarios = (id: number) => {
-    const dados = dadosDiarios.find((d) => d.id === id)
-    setDadosDiarios((prev) => prev.filter((d) => d.id !== id))
-    if (dados) {
-      logActivity("Excluir", "Dados Diários", id, `Dados diários de ${dados.date} excluídos`)
-    }
-  }
-
-  const updateTreinamento = (id: number, treinamentoAtualizado: Partial<Treinamento>) => {
-    setTreinamentos((prev) => {
-      const treinamentoAntigo = prev.find((t) => t.id === id)
-      const updated = prev.map((t) => (t.id === id ? { ...t, ...treinamentoAtualizado } : t))
-
-      if (treinamentoAtualizado.status || treinamentoAtualizado.carteira || treinamentoAtualizado.quantidade) {
-        const treinamento = updated.find((t) => t.id === id)
-        if (treinamento) {
-          setCarteiras((prevCarteiras) =>
-            prevCarteiras.map((carteira) => {
-              const treinamentosCarteira = updated.filter((t) => t.carteira === carteira.name)
-              const newTotal = treinamentosCarteira.reduce((sum, t) => sum + t.quantidade, 0)
-              const newAplicados = treinamentosCarteira
-                .filter((t) => t.status === "Aplicado")
-                .reduce((sum, t) => sum + t.quantidade, 0)
-              const newPendentes = treinamentosCarteira
-                .filter((t) => t.status === "Pendente")
-                .reduce((sum, t) => sum + t.quantidade, 0)
-              const newTaxa = newTotal > 0 ? Math.round((newAplicados / newTotal) * 100 * 10) / 10 : 0
-
-              return {
-                ...carteira,
-                total: newTotal,
-                aplicados: newAplicados,
-                pendentes: newPendentes,
-                taxa: newTaxa,
-              }
-            }),
-          )
-        }
+          })
+          .eq("name", treinamentoToDelete.carteira)
       }
 
-      if (treinamentoAntigo) {
-        logActivity("Editar", "Treinamento", id, `Treinamento "${treinamentoAntigo.assunto}" atualizado`)
-      }
-
-      return updated
-    })
-  }
-
-  const deleteTreinamento = (id: number) => {
-    setTreinamentos((prev) => {
-      const treinamentoToDelete = prev.find((t) => t.id === id)
-      const updated = prev.filter((t) => t.id !== id)
-
-      // Recalculate carteira stats after deletion
-      if (treinamentoToDelete) {
-        setCarteiras((prevCarteiras) =>
-          prevCarteiras.map((carteira) => {
-            if (carteira.name === treinamentoToDelete.carteira) {
-              const treinamentosCarteira = updated.filter((t) => t.carteira === carteira.name)
-              const newTotal = treinamentosCarteira.reduce((sum, t) => sum + t.quantidade, 0)
-              const newAplicados = treinamentosCarteira
-                .filter((t) => t.status === "Aplicado")
-                .reduce((sum, t) => sum + t.quantidade, 0)
-              const newPendentes = treinamentosCarteira
-                .filter((t) => t.status === "Pendente")
-                .reduce((sum, t) => sum + t.quantidade, 0)
-              const newTaxa = newTotal > 0 ? Math.round((newAplicados / newTotal) * 100 * 10) / 10 : 0
-
-              return {
-                ...carteira,
-                total: newTotal,
-                aplicados: newAplicados,
-                pendentes: newPendentes,
-                taxa: newTaxa,
-              }
-            }
-            return carteira
-          }),
-        )
-
-        logActivity("Excluir", "Treinamento", id, `Treinamento "${treinamentoToDelete.assunto}" excluído`)
-      }
-
-      return updated
-    })
-  }
-
-  const updateDesligamento = (id: number, desligamentoAtualizado: Partial<Desligamento>) => {
-    setDesligamentos((prev) =>
-      prev.map((desligamento) =>
-        desligamento.id === id ? { ...desligamento, ...desligamentoAtualizado } : desligamento,
-      ),
-    )
-    logActivity("Editar", "Desligamento", id, `Desligamento atualizado`)
-  }
-
-  const deleteDesligamento = (id: number) => {
-    const desligamento = desligamentos.find((d) => d.id === id)
-    setDesligamentos((prev) => prev.filter((d) => d.id !== id))
-    if (desligamento) {
-      logActivity("Excluir", "Desligamento", id, `Desligamento de "${desligamento.nome}" excluído`)
+      await logActivity("Excluir", "Treinamento", id, `Treinamento "${treinamentoToDelete.assunto}" excluído`)
     }
+
+    mutate("treinamentos")
+    mutate("carteiras")
   }
 
-  const addOperador = (novoOperador: Omit<Operador, "id">) => {
-    const operador: Operador = {
-      ...novoOperador,
-      id: Date.now(),
+  const addOperador = async (novoOperador: Omit<Operador, "id">) => {
+    const { error } = await supabase.from("operadores").insert([novoOperador])
+    if (error) {
+      console.error("Error adding operador:", error)
+      return
     }
-    setOperadores((prev) => [...prev, operador])
-    logActivity("Criar", "Operador", operador.id, `Operador "${operador.nome}" adicionado`)
+
+    await logActivity("Criar", "Operador", novoOperador.nome, `Operador "${novoOperador.nome}" adicionado`)
+    mutate("operadores")
   }
 
-  const updateOperador = (id: number, operadorAtualizado: Partial<Operador>) => {
-    setOperadores((prev) =>
-      prev.map((operador) => (operador.id === id ? { ...operador, ...operadorAtualizado } : operador)),
-    )
-    logActivity("Editar", "Operador", id, `Operador atualizado`)
+  const updateOperador = async (id: number, operadorAtualizado: Partial<Operador>) => {
+    const { error } = await supabase.from("operadores").update(operadorAtualizado).eq("id", id)
+    if (error) {
+      console.error("Error updating operador:", error)
+      return
+    }
+
+    await logActivity("Editar", "Operador", id, `Operador atualizado`)
+    mutate("operadores")
   }
 
-  const deleteOperador = (id: number) => {
+  const deleteOperador = async (id: number) => {
     const operador = operadores.find((o) => o.id === id)
-    setOperadores((prev) => prev.filter((o) => o.id !== id))
+
+    const { error } = await supabase.from("operadores").delete().eq("id", id)
+    if (error) {
+      console.error("Error deleting operador:", error)
+      return
+    }
+
     if (operador) {
-      logActivity("Excluir", "Operador", id, `Operador "${operador.nome}" excluído`)
+      await logActivity("Excluir", "Operador", id, `Operador "${operador.nome}" excluído`)
     }
+    mutate("operadores")
   }
 
-  const importOperadores = (novosOperadores: Omit<Operador, "id">[]) => {
-    const operadoresComId = novosOperadores.map((operador, index) => ({
-      ...operador,
-      id: Date.now() + index,
-    }))
-    setOperadores((prev) => [...prev, ...operadoresComId])
-    logActivity("Importar", "Operadores", "bulk", `${novosOperadores.length} operadores importados`)
-  }
-
-  const addAgente = (novoAgente: Omit<Agente, "id">) => {
-    const agente: Agente = {
-      ...novoAgente,
-      id: Date.now(),
+  const importOperadores = async (novosOperadores: Omit<Operador, "id">[]) => {
+    const { error } = await supabase.from("operadores").insert(novosOperadores)
+    if (error) {
+      console.error("Error importing operadores:", error)
+      return
     }
-    setAgentes((prev) => [...prev, agente])
-    logActivity("Criar", "Agente", agente.id, `Agente "${agente.operador}" adicionado`)
+
+    await logActivity("Importar", "Operadores", "bulk", `${novosOperadores.length} operadores importados`)
+    mutate("operadores")
   }
 
-  const updateAgente = (id: number, agenteAtualizado: Partial<Agente>) => {
-    setAgentes((prev) => prev.map((agente) => (agente.id === id ? { ...agente, ...agenteAtualizado } : agente)))
-    logActivity("Editar", "Agente", id, `Agente atualizado`)
+  const addAgente = async (novoAgente: Omit<Agente, "id">) => {
+    const { error } = await supabase.from("agentes").insert([novoAgente])
+    if (error) {
+      console.error("Error adding agente:", error)
+      return
+    }
+
+    await logActivity("Criar", "Agente", novoAgente.operador, `Agente "${novoAgente.operador}" adicionado`)
+    mutate("agentes")
   }
 
-  const deleteAgente = (id: number) => {
+  const updateAgente = async (id: number, agenteAtualizado: Partial<Agente>) => {
+    const { error } = await supabase.from("agentes").update(agenteAtualizado).eq("id", id)
+    if (error) {
+      console.error("Error updating agente:", error)
+      return
+    }
+
+    await logActivity("Editar", "Agente", id, `Agente atualizado`)
+    mutate("agentes")
+  }
+
+  const deleteAgente = async (id: number) => {
     const agente = agentes.find((a) => a.id === id)
-    setAgentes((prev) => prev.filter((a) => a.id !== id))
+
+    const { error } = await supabase.from("agentes").delete().eq("id", id)
+    if (error) {
+      console.error("Error deleting agente:", error)
+      return
+    }
+
     if (agente) {
-      logActivity("Excluir", "Agente", id, `Agente "${agente.operador}" excluído`)
+      await logActivity("Excluir", "Agente", id, `Agente "${agente.operador}" excluído`)
+    }
+    mutate("agentes")
+  }
+
+  const importAgentes = async (novosAgentes: Omit<Agente, "id">[]) => {
+    const { error } = await supabase.from("agentes").insert(novosAgentes)
+    if (error) {
+      console.error("Error importing agentes:", error)
+      return
+    }
+
+    await logActivity("Importar", "Agentes", "bulk", `${novosAgentes.length} agentes importados`)
+    mutate("agentes")
+  }
+
+  const addOrUpdateMonitoringMonth = async (monthData: MonthData) => {
+    const { data: existing } = await supabase
+      .from("monitoring_data")
+      .select("*")
+      .eq("year", monthData.year)
+      .eq("month", monthData.month)
+      .single()
+
+    if (existing) {
+      await supabase
+        .from("monitoring_data")
+        .update({ weeks: monthData.weeks })
+        .eq("year", monthData.year)
+        .eq("month", monthData.month)
+      await logActivity("Editar", "Monitoria", `${monthData.year}-${monthData.month}`, `Dados de monitoria atualizados`)
+    } else {
+      await supabase.from("monitoring_data").insert([monthData])
+      await logActivity("Criar", "Monitoria", `${monthData.year}-${monthData.month}`, `Dados de monitoria adicionados`)
+    }
+
+    mutate("monitoring_data")
+  }
+
+  const deleteMonitoringWeek = async (year: number, month: number, weekId: string) => {
+    const { data: monthData } = await supabase
+      .from("monitoring_data")
+      .select("*")
+      .eq("year", year)
+      .eq("month", month)
+      .single()
+
+    if (monthData) {
+      const updatedWeeks = monthData.weeks.filter((week: WeekData) => week.id !== weekId)
+      await supabase.from("monitoring_data").update({ weeks: updatedWeeks }).eq("year", year).eq("month", month)
+
+      await logActivity("Excluir", "Monitoria", weekId, `Semana de monitoria excluída`)
+      mutate("monitoring_data")
     }
   }
 
-  const importAgentes = (novosAgentes: Omit<Agente, "id">[]) => {
-    const agentesComId = novosAgentes.map((agente, index) => ({
-      ...agente,
-      id: Date.now() + index,
-    }))
-    setAgentes((prev) => [...prev, ...agentesComId])
-    logActivity("Importar", "Agentes", "bulk", `${novosAgentes.length} agentes importados`)
+  const updateMonitoringWeek = async (year: number, month: number, weekId: string, weekData: WeekData) => {
+    const { data: monthData } = await supabase
+      .from("monitoring_data")
+      .select("*")
+      .eq("year", year)
+      .eq("month", month)
+      .single()
+
+    if (monthData) {
+      const updatedWeeks = monthData.weeks.map((week: WeekData) => (week.id === weekId ? weekData : week))
+      await supabase.from("monitoring_data").update({ weeks: updatedWeeks }).eq("year", year).eq("month", month)
+
+      await logActivity("Editar", "Monitoria", weekId, `Semana de monitoria atualizada`)
+      mutate("monitoring_data")
+    }
   }
 
-  const addOrUpdateMonitoringMonth = (monthData: MonthData) => {
-    setMonitoringData((prev) => {
-      const existingIndex = prev.findIndex((m) => m.year === monthData.year && m.month === monthData.month)
-      if (existingIndex >= 0) {
-        const updated = [...prev]
-        updated[existingIndex] = monthData
-        logActivity("Editar", "Monitoria", `${monthData.year}-${monthData.month}`, `Dados de monitoria atualizados`)
-        return updated
+  const addTIAEntry = async (newEntry: Omit<TIAEntry, "id" | "totalPercent">) => {
+    const totalPercent = (newEntry.analisados / newEntry.quantidade) * 100
+    const entry = {
+      ...newEntry,
+      total_percent: totalPercent,
+    }
+
+    const { error } = await supabase.from("tia_data").insert([entry])
+    if (error) {
+      console.error("Error adding TIA entry:", error)
+      return
+    }
+
+    await logActivity("Criar", "TIA", newEntry.date, `Entrada TIA adicionada para ${newEntry.date}`)
+    mutate("tia_data")
+  }
+
+  const updateTIAEntry = async (id: string, updatedEntry: Partial<Omit<TIAEntry, "id">>) => {
+    const entry = tiaData.find((e) => e.id === id)
+    if (entry) {
+      const updated = { ...entry, ...updatedEntry }
+      if (updatedEntry.analisados !== undefined || updatedEntry.quantidade !== undefined) {
+        updated.totalPercent = (updated.analisados / updated.quantidade) * 100
       }
-      logActivity("Criar", "Monitoria", `${monthData.year}-${monthData.month}`, `Dados de monitoria adicionados`)
-      return [...prev, monthData]
-    })
+
+      const { error } = await supabase
+        .from("tia_data")
+        .update({ ...updatedEntry, total_percent: updated.totalPercent })
+        .eq("id", id)
+
+      if (error) {
+        console.error("Error updating TIA entry:", error)
+        return
+      }
+
+      await logActivity("Editar", "TIA", id, `Entrada TIA atualizada`)
+      mutate("tia_data")
+    }
   }
 
-  const deleteMonitoringWeek = (year: number, month: number, weekId: string) => {
-    setMonitoringData((prev) => {
-      return prev.map((monthData) => {
-        if (monthData.year === year && monthData.month === month) {
-          logActivity("Excluir", "Monitoria", weekId, `Semana de monitoria excluída`)
-          return {
-            ...monthData,
-            weeks: monthData.weeks.filter((week) => week.id !== weekId),
-          }
-        }
-        return monthData
-      })
-    })
+  const deleteTIAEntry = async (id: string) => {
+    const entry = tiaData.find((e) => e.id === id)
+
+    const { error } = await supabase.from("tia_data").delete().eq("id", id)
+    if (error) {
+      console.error("Error deleting TIA entry:", error)
+      return
+    }
+
+    if (entry) {
+      await logActivity("Excluir", "TIA", id, `Entrada TIA de ${entry.date} excluída`)
+    }
+    mutate("tia_data")
   }
 
-  const updateMonitoringWeek = (year: number, month: number, weekId: string, weekData: WeekData) => {
-    setMonitoringData((prev) => {
-      return prev.map((monthData) => {
-        if (monthData.year === year && monthData.month === month) {
-          logActivity("Editar", "Monitoria", weekId, `Semana de monitoria atualizada`)
-          return {
-            ...monthData,
-            weeks: monthData.weeks.map((week) => (week.id === weekId ? weekData : week)),
-          }
-        }
-        return monthData
-      })
-    })
+  const addMotivoDesligamento = async (nome: string) => {
+    const { error } = await supabase.from("motivos_desligamento").insert([{ nome }])
+    if (error) {
+      console.error("Error adding motivo:", error)
+      return
+    }
+
+    await logActivity("Criar", "Motivo Desligamento", nome, `Motivo "${nome}" criado`)
+    mutate("motivos_desligamento")
+  }
+
+  const updateMotivoDesligamento = async (id: number, nome: string) => {
+    const motivoAntigo = motivosDesligamento.find((m) => m.id === id)
+
+    const { error } = await supabase.from("motivos_desligamento").update({ nome }).eq("id", id)
+    if (error) {
+      console.error("Error updating motivo:", error)
+      return
+    }
+
+    // Update all desligamentos that use this motivo
+    if (motivoAntigo) {
+      await supabase.from("desligamentos").update({ motivo: nome }).eq("motivo", motivoAntigo.nome)
+      await logActivity("Editar", "Motivo Desligamento", id, `Motivo renomeado`, [
+        { field: "Nome", oldValue: motivoAntigo.nome, newValue: nome },
+      ])
+    }
+
+    mutate("motivos_desligamento")
+    mutate("desligamentos")
+  }
+
+  const deleteMotivoDesligamento = async (id: number) => {
+    const motivo = motivosDesligamento.find((m) => m.id === id)
+
+    const { error } = await supabase.from("motivos_desligamento").delete().eq("id", id)
+    if (error) {
+      console.error("Error deleting motivo:", error)
+      return
+    }
+
+    if (motivo) {
+      await logActivity("Excluir", "Motivo Desligamento", id, `Motivo "${motivo.nome}" excluído`)
+    }
+    mutate("motivos_desligamento")
+  }
+
+  const getActivityLogs = (filters?: {
+    dateRange?: { start: string; end: string }
+    user?: string
+    action?: string
+    entity?: string
+  }) => {
+    let filtered = activityLogs
+
+    if (filters?.dateRange?.start) {
+      filtered = filtered.filter((log) => new Date(log.timestamp) >= new Date(filters.dateRange!.start))
+    }
+    if (filters?.dateRange?.end) {
+      filtered = filtered.filter((log) => new Date(log.timestamp) <= new Date(filters.dateRange!.end))
+    }
+    if (filters?.user && filters.user !== "Todos os usuários") {
+      filtered = filtered.filter((log) => log.user === filters.user)
+    }
+    if (filters?.action && filters.action !== "Todas as ações") {
+      filtered = filtered.filter((log) => log.action === filters.action)
+    }
+    if (filters?.entity && filters.entity !== "Todas as entidades") {
+      filtered = filtered.filter((log) => log.entity === filters.entity)
+    }
+
+    return filtered
   }
 
   const getCapacitacaoStats = () => {
@@ -986,41 +1031,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const addTIAEntry = (newEntry: Omit<TIAEntry, "id" | "totalPercent">) => {
-    const totalPercent = (newEntry.analisados / newEntry.quantidade) * 100
-    const entry: TIAEntry = {
-      ...newEntry,
-      id: Date.now().toString(),
-      totalPercent,
-    }
-    setTiaData((prev) => [...prev, entry].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
-    logActivity("Criar", "TIA", entry.id, `Entrada TIA adicionada para ${entry.date}`)
-  }
-
-  const updateTIAEntry = (id: string, updatedEntry: Partial<Omit<TIAEntry, "id">>) => {
-    setTiaData((prev) =>
-      prev.map((entry) => {
-        if (entry.id === id) {
-          const updated = { ...entry, ...updatedEntry }
-          if (updatedEntry.analisados !== undefined || updatedEntry.quantidade !== undefined) {
-            updated.totalPercent = (updated.analisados / updated.quantidade) * 100
-          }
-          return updated
-        }
-        return entry
-      }),
-    )
-    logActivity("Editar", "TIA", id, `Entrada TIA atualizada`)
-  }
-
-  const deleteTIAEntry = (id: string) => {
-    const entry = tiaData.find((e) => e.id === id)
-    setTiaData((prev) => prev.filter((entry) => entry.id !== id))
-    if (entry) {
-      logActivity("Excluir", "TIA", id, `Entrada TIA de ${entry.date} excluída`)
-    }
-  }
-
   const getTIAStats = (year?: number, month?: number) => {
     let dataToAnalyze = tiaData
 
@@ -1042,69 +1052,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       totalQuantidade,
       mediaPercent,
     }
-  }
-
-  const addMotivoDesligamento = (nome: string) => {
-    const motivo: MotivoDesligamento = {
-      id: Date.now(),
-      nome,
-    }
-    setMotivosDesligamento((prev) => [...prev, motivo])
-    logActivity("Criar", "Motivo Desligamento", motivo.id, `Motivo "${nome}" criado`)
-  }
-
-  const updateMotivoDesligamento = (id: number, nome: string) => {
-    setMotivosDesligamento((prev) => {
-      const motivoAntigo = prev.find((m) => m.id === id)
-      const updated = prev.map((m) => (m.id === id ? { ...m, nome } : m))
-
-      // Update all desligamentos that use this motivo
-      if (motivoAntigo) {
-        setDesligamentos((prevDesligamentos) =>
-          prevDesligamentos.map((d) => (d.motivo === motivoAntigo.nome ? { ...d, motivo: nome } : d)),
-        )
-        logActivity("Editar", "Motivo Desligamento", id, `Motivo renomeado`, [
-          { field: "Nome", oldValue: motivoAntigo.nome, newValue: nome },
-        ])
-      }
-
-      return updated
-    })
-  }
-
-  const deleteMotivoDesligamento = (id: number) => {
-    const motivo = motivosDesligamento.find((m) => m.id === id)
-    setMotivosDesligamento((prev) => prev.filter((m) => m.id !== id))
-    if (motivo) {
-      logActivity("Excluir", "Motivo Desligamento", id, `Motivo "${motivo.nome}" excluído`)
-    }
-  }
-
-  const getActivityLogs = (filters?: {
-    dateRange?: { start: string; end: string }
-    user?: string
-    action?: string
-    entity?: string
-  }) => {
-    let filtered = activityLogs
-
-    if (filters?.dateRange?.start) {
-      filtered = filtered.filter((log) => new Date(log.timestamp) >= new Date(filters.dateRange!.start))
-    }
-    if (filters?.dateRange?.end) {
-      filtered = filtered.filter((log) => new Date(log.timestamp) <= new Date(filters.dateRange!.end))
-    }
-    if (filters?.user && filters.user !== "Todos os usuários") {
-      filtered = filtered.filter((log) => log.user === filters.user)
-    }
-    if (filters?.action && filters.action !== "Todas as ações") {
-      filtered = filtered.filter((log) => log.action === filters.action)
-    }
-    if (filters?.entity && filters.entity !== "Todas as entidades") {
-      filtered = filtered.filter((log) => log.entity === filters.entity)
-    }
-
-    return filtered
   }
 
   const value: DataContextType = {

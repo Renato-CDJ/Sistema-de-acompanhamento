@@ -1,3 +1,6 @@
+import { createClient } from "@/lib/supabase/client"
+import { createClient as createServerClient } from "@/lib/supabase/server"
+
 export type UserRole = "superadmin" | "admin" | "user"
 
 export interface User {
@@ -16,7 +19,6 @@ export interface User {
       canEdit: boolean
     }>
   }
-  password?: string
 }
 
 export interface AuthState {
@@ -24,119 +26,54 @@ export interface AuthState {
   isAuthenticated: boolean
 }
 
-// Mock authentication - in production, this would connect to a real auth system
-export const mockUsers: User[] = [
-  {
-    id: "1",
-    email: "admin@empresa.com",
-    name: "Administrador Principal",
-    role: "superadmin",
-    cargo: "CEO",
-    blocked: false,
-    permissions: {
-      canCreateGroups: true,
-      canManageUsers: true,
-      tabPermissions: [],
-    },
-    password: "qualidade@$.",
-  },
-  {
-    id: "2",
-    email: "usuario@empresa.com",
-    name: "Usuário Comum",
-    role: "user",
-    cargo: "Developer",
-    blocked: false,
-    permissions: {
-      canCreateGroups: false,
-      canManageUsers: false,
-      tabPermissions: [],
-    },
-    password: "123456",
-  },
-]
-
-export const loadUsers = (): User[] => {
-  if (typeof window === "undefined") return mockUsers
-
+export const getUserProfile = async (userId: string): Promise<User | null> => {
   try {
-    const stored = localStorage.getItem("systemUsers")
-    if (!stored) return mockUsers
+    const supabase = createClient()
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
 
-    const parsed = JSON.parse(stored)
-    return Array.isArray(parsed) ? parsed : mockUsers
+    if (error || !data) {
+      console.error("[v0] Error fetching user profile:", error)
+      return null
+    }
+
+    return {
+      id: data.id,
+      email: data.email,
+      name: data.name,
+      role: data.role as UserRole,
+      cargo: data.cargo,
+      blocked: data.blocked,
+      permissions: data.permissions,
+    }
   } catch (error) {
-    console.error("Error loading users from localStorage:", error)
-    return mockUsers
+    console.error("[v0] Error in getUserProfile:", error)
+    return null
   }
 }
 
-export const saveUsers = (users: User[]) => {
-  if (typeof window !== "undefined") {
-    try {
-      const storedUsers = localStorage.getItem("systemUsers")
-      const existingUsers = storedUsers ? JSON.parse(storedUsers) : []
-
-      const passwordMap = new Map()
-      existingUsers.forEach((user: any) => {
-        if (user.password) {
-          passwordMap.set(user.id, user.password)
-        }
-      })
-
-      const usersWithPasswords = users.map((user) => {
-        const existingPassword = passwordMap.get(user.id)
-        if (existingPassword) {
-          return { ...user, password: existingPassword }
-        }
-        if (user.email === "admin@empresa.com") {
-          return { ...user, password: "qualidade@$." }
-        }
-        if (user.email === "usuario@empresa.com") {
-          return { ...user, password: "123456" }
-        }
-        return user
-      })
-
-      localStorage.setItem("systemUsers", JSON.stringify(usersWithPasswords))
-    } catch (error) {
-      console.error("Error saving users to localStorage:", error)
-    }
-  }
-}
-
-export const authenticateUser = async (email: string, password: string): Promise<User | null> => {
+export const getServerUserProfile = async (userId: string): Promise<User | null> => {
   try {
-    if (email === "admin@empresa.com" && password === "qualidade@$.") {
-      const users = loadUsers()
-      const user = users.find((u) => u.email === email)
-      if (user && !user.blocked) {
-        return user
-      }
+    const supabase = await createServerClient()
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
+
+    if (error || !data) {
+      console.error("[v0] Error fetching user profile:", error)
+      return null
     }
 
-    if (email === "usuario@empresa.com" && password === "123456") {
-      const users = loadUsers()
-      const user = users.find((u) => u.email === email)
-      if (user && !user.blocked) {
-        return user
-      }
-    }
-
-    const storedUsers = typeof window !== "undefined" ? localStorage.getItem("systemUsers") : null
-    if (storedUsers) {
-      const parsedUsers = JSON.parse(storedUsers)
-      const customUser = parsedUsers.find((u: any) => u.email === email && u.password === password)
-      if (customUser && !customUser.blocked) {
-        const { password: _, ...userWithoutPassword } = customUser
-        return userWithoutPassword
-      }
+    return {
+      id: data.id,
+      email: data.email,
+      name: data.name,
+      role: data.role as UserRole,
+      cargo: data.cargo,
+      blocked: data.blocked,
+      permissions: data.permissions,
     }
   } catch (error) {
-    console.error("Error authenticating user:", error)
+    console.error("[v0] Error in getServerUserProfile:", error)
+    return null
   }
-
-  return null
 }
 
 export const hasPermission = (user: User | null, action: "create" | "edit" | "delete"): boolean => {
@@ -145,7 +82,7 @@ export const hasPermission = (user: User | null, action: "create" | "edit" | "de
 }
 
 export const isSuperAdmin = (user: User | null): boolean => {
-  return user?.email === "admin@empresa.com" && user?.role === "superadmin"
+  return user?.role === "superadmin"
 }
 
 export const canAccessTab = (user: User | null, tabId: string): boolean => {
