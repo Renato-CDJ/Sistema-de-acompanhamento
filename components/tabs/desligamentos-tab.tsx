@@ -163,8 +163,6 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
           })
         }
 
-        console.log("[v0] Desligamento processado:", novoDesligamento)
-
         // Reset form
         setNovoDesligamento({
           nome: "",

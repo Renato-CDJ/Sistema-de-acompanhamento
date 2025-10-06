@@ -8,7 +8,14 @@ import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -240,6 +247,7 @@ export function DocumentosTab() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Criar Nova Pasta</DialogTitle>
+                  <DialogDescription>Organize seus documentos criando uma nova pasta</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -271,6 +279,7 @@ export function DocumentosTab() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Upload de Documento</DialogTitle>
+                  <DialogDescription>Selecione um arquivo para fazer upload na pasta atual</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -503,6 +512,7 @@ export function DocumentosTab() {
               {previewDocument && getFileIcon(previewDocument.type)}
               {previewDocument?.name}
             </DialogTitle>
+            <DialogDescription>Visualização do documento</DialogDescription>
           </DialogHeader>
           <div className="py-4">{renderPreviewContent()}</div>
         </DialogContent>

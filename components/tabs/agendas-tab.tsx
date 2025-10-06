@@ -9,7 +9,14 @@ import { useUsers } from "@/contexts/users-context"
 import { hasPermission } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -142,6 +149,11 @@ export function AgendasTab() {
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>{editingAgenda ? "Editar Agenda" : "Nova Agenda"}</DialogTitle>
+                <DialogDescription>
+                  {editingAgenda
+                    ? "Atualize as informações da reunião"
+                    : "Crie uma nova reunião e convide participantes"}
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>

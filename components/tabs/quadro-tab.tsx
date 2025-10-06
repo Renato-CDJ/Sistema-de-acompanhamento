@@ -27,6 +27,12 @@ import { hasPermission } from "@/lib/auth"
 import { useData } from "@/contexts/data-context"
 import { useToast } from "@/hooks/use-toast"
 
+const formatDateWithoutTimezone = (dateString: string): string => {
+  if (!dateString) return ""
+  const [year, month, day] = dateString.split("-")
+  return `${day}/${month}/${year}`
+}
+
 interface QuadroTabProps {
   filters?: {
     dateRange?: { start: string; end: string }
@@ -350,7 +356,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
   }
 
   const handleEditDadosDiarios = (record: any) => {
-    console.log("[v0] Editing dados diarios:", record)
     setEditingDailyData(record.id)
     setDailyData({
       date: record.date,
@@ -395,7 +400,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
     const secao = editingDailyData !== null ? dailyData.secao : selectedOption === "caixa" ? "Caixa" : "Cobrança"
 
     if (editingDailyData !== null) {
-      console.log("[v0] Updating dados diarios with secao:", secao)
       updateDadosDiarios(editingDailyData, { ...dailyData, secao })
       toast({
         title: "Sucesso",
@@ -404,7 +408,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
       })
       setEditingDailyData(null)
     } else {
-      console.log("[v0] Adding new dados diarios with secao:", secao)
       addDadosDiarios({ ...dailyData, secao })
       toast({
         title: "Sucesso",
@@ -428,7 +431,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
   }
 
   const handleCancelEditCarteiraStats = () => {
-    console.log("[v0] Canceling carteira stats edit")
     setEditingCarteiraStats(null)
     setCarteiraStatsData({
       date: "",
@@ -442,7 +444,6 @@ export function QuadroTab({ filters }: QuadroTabProps) {
   }
 
   const handleCancelEditDailyData = () => {
-    console.log("[v0] Canceling daily data edit")
     setEditingDailyData(null)
     setDailyData({
       date: "",
@@ -660,7 +661,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                 <CardTitle>Detalhes das Carteiras</CardTitle>
                 <CardDescription>
                   {filters?.dateRange?.start || filters?.dateRange?.end
-                    ? `Estatísticas filtradas por período: ${filters.dateRange.start ? new Date(filters.dateRange.start).toLocaleDateString("pt-BR") : "início"} até ${filters.dateRange.end ? new Date(filters.dateRange.end).toLocaleDateString("pt-BR") : "fim"}`
+                    ? `Estatísticas filtradas por período: ${filters.dateRange.start ? formatDateWithoutTimezone(filters.dateRange.start) : "início"} até ${filters.dateRange.end ? formatDateWithoutTimezone(filters.dateRange.end) : "fim"}`
                     : "Estatísticas gerais das carteiras"}
                 </CardDescription>
               </CardHeader>
@@ -689,7 +690,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                       {filteredCarteiraStats.map((stat) => (
                         <TableRow key={stat.id}>
                           <TableCell className="font-medium">{stat.carteira}</TableCell>
-                          <TableCell>{new Date(stat.date).toLocaleDateString("pt-BR")}</TableCell>
+                          <TableCell>{formatDateWithoutTimezone(stat.date)}</TableCell>
                           <TableCell>{stat.total}</TableCell>
                           <TableCell className="text-green-600">{stat.presentes}</TableCell>
                           <TableCell className="text-red-600">{stat.faltas}</TableCell>
@@ -753,8 +754,8 @@ export function QuadroTab({ filters }: QuadroTabProps) {
           <CardDescription>
             {filters?.secao && filters.secao !== "Todas as seções" && `Seção: ${filters.secao} `}
             {filters?.turno && filters.turno !== "Todos os turnos" && `- Turno: ${filters.turno} `}
-            {filters?.dateRange?.start && `- De: ${new Date(filters.dateRange.start).toLocaleDateString("pt-BR")} `}
-            {filters?.dateRange?.end && `até: ${new Date(filters.dateRange.end).toLocaleDateString("pt-BR")}`}
+            {filters?.dateRange?.start && `- De: ${formatDateWithoutTimezone(filters.dateRange.start)} `}
+            {filters?.dateRange?.end && `até: ${formatDateWithoutTimezone(filters.dateRange.end)}`}
             {(!filters?.secao || filters.secao === "Todas as seções") &&
               (!filters?.turno || filters.turno === "Todos os turnos") &&
               !filters?.dateRange?.start &&
@@ -791,7 +792,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
               <TableBody>
                 {filteredDadosDiarios.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell>{new Date(record.date).toLocaleDateString("pt-BR")}</TableCell>
+                    <TableCell>{formatDateWithoutTimezone(record.date)}</TableCell>
                     <TableCell>{record.total}</TableCell>
                     <TableCell className="text-green-600">{record.ativos}</TableCell>
                     <TableCell className="text-blue-600">{record.ferias}</TableCell>
@@ -827,8 +828,8 @@ export function QuadroTab({ filters }: QuadroTabProps) {
             <CardDescription>
               {filters?.carteira && filters.carteira !== "Todas as carteiras" && `Carteira: ${filters.carteira} `}
               {filters?.turno && filters.turno !== "Todos os turnos" && `- Turno: ${filters.turno} `}
-              {filters?.dateRange?.start && `- De: ${new Date(filters.dateRange.start).toLocaleDateString("pt-BR")} `}
-              {filters?.dateRange?.end && `até: ${new Date(filters.dateRange.end).toLocaleDateString("pt-BR")}`}
+              {filters?.dateRange?.start && `- De: ${formatDateWithoutTimezone(filters.dateRange.start)} `}
+              {filters?.dateRange?.end && `até: ${formatDateWithoutTimezone(filters.dateRange.end)}`}
               {(!filters?.carteira || filters.carteira === "Todas as carteiras") &&
                 (!filters?.turno || filters.turno === "Todos os turnos") &&
                 !filters?.dateRange?.start &&
@@ -863,7 +864,7 @@ export function QuadroTab({ filters }: QuadroTabProps) {
                 <TableBody>
                   {filteredCarteiraStats.map((stat) => (
                     <TableRow key={stat.id}>
-                      <TableCell>{new Date(stat.date).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell>{formatDateWithoutTimezone(stat.date)}</TableCell>
                       <TableCell className="font-medium">{stat.carteira}</TableCell>
                       <TableCell>{stat.total}</TableCell>
                       <TableCell className="text-green-600">{stat.presentes}</TableCell>
