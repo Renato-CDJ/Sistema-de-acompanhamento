@@ -1,121 +1,74 @@
 "use client"
 
-import { createContext, useContext, useEffect, type ReactNode, useCallback } from "react"
-import useSWR from "swr"
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react"
 import type { Agenda } from "@/lib/types"
 import { useAuth } from "./auth-context"
 import { useNotifications } from "@/contexts/notifications-context"
-import { createClient } from "@/lib/supabase/client"
 
 interface AgendasContextType {
   agendas: Agenda[]
-  addAgenda: (agenda: Omit<Agenda, "id" | "createdAt" | "notified24h" | "notifiedHours">) => Promise<void>
-  updateAgenda: (id: string, agenda: Partial<Agenda>) => Promise<void>
-  deleteAgenda: (id: string) => Promise<void>
+  addAgenda: (agenda: Omit<Agenda, "id" | "createdAt" | "notified24h" | "notifiedHours">) => void
+  updateAgenda: (id: string, agenda: Partial<Agenda>) => void
+  deleteAgenda: (id: string) => void
   getUpcomingAgendas: () => Agenda[]
   checkNotifications: () => void
-  isLoading: boolean
 }
 
 const AgendasContext = createContext<AgendasContextType | undefined>(undefined)
 
-const fetcher = async (key: string) => {
-  const supabase = createClient()
-
-  // Check if user is authenticated
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error("Not authenticated")
-  }
-
-  const { data, error } = await supabase
-    .from("agendas")
-    .select("*")
-    .order("date", { ascending: true })
-    .order("time", { ascending: true })
-
-  if (error) throw error
-
-  return (data || []).map((item: any) => ({
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    date: item.date,
-    time: item.time,
-    participants: item.participants || [],
-    createdBy: item.created_by,
-    createdAt: item.created_at,
-    notified24h: item.notified_24h || false,
-    notifiedHours: item.notified_hours || false,
-  }))
-}
-
 export function AgendasProvider({ children }: { children: ReactNode }) {
-  const { user, isLoading: authLoading } = useAuth()
-  const { addNotification } = useNotifications()
-
-  const shouldFetch = user && !authLoading
-  const {
-    data: agendas = [],
-    mutate,
-    isLoading,
-  } = useSWR(shouldFetch ? "agendas" : null, fetcher, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: true,
+  const [agendas, setAgendas] = useState<Agenda[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("agendas")
+        return stored ? JSON.parse(stored) : []
+      } catch (error) {
+        console.error("Error loading agendas from localStorage:", error)
+        return []
+      }
+    }
+    return []
   })
 
-  const addAgenda = async (newAgenda: Omit<Agenda, "id" | "createdAt" | "notified24h" | "notifiedHours">) => {
-    const supabase = createClient()
+  const { user } = useAuth()
+  const { addNotification } = useNotifications()
 
-    const { data, error } = await supabase
-      .from("agendas")
-      .insert({
-        title: newAgenda.title,
-        description: newAgenda.description,
-        date: newAgenda.date,
-        time: newAgenda.time,
-        participants: newAgenda.participants,
-        created_by: user?.email || "",
-        notified_24h: false,
-        notified_hours: false,
-      })
-      .select()
-      .single()
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("agendas", JSON.stringify(agendas))
+      } catch (error) {
+        console.error("Error saving agendas to localStorage:", error)
+      }
+    }
+  }, [agendas])
 
-    if (error) throw error
+  // Check for notifications every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkNotifications()
+    }, 60000) // Check every minute
 
-    await mutate()
+    return () => clearInterval(interval)
+  }, [agendas, user])
+
+  const addAgenda = (newAgenda: Omit<Agenda, "id" | "createdAt" | "notified24h" | "notifiedHours">) => {
+    const agenda: Agenda = {
+      ...newAgenda,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      notified24h: false,
+      notifiedHours: false,
+    }
+    setAgendas((prev) => [...prev, agenda])
   }
 
-  const updateAgenda = async (id: string, updatedAgenda: Partial<Agenda>) => {
-    const supabase = createClient()
-
-    const updateData: any = {}
-    if (updatedAgenda.title) updateData.title = updatedAgenda.title
-    if (updatedAgenda.description) updateData.description = updatedAgenda.description
-    if (updatedAgenda.date) updateData.date = updatedAgenda.date
-    if (updatedAgenda.time) updateData.time = updatedAgenda.time
-    if (updatedAgenda.participants) updateData.participants = updatedAgenda.participants
-    if (updatedAgenda.notified24h !== undefined) updateData.notified_24h = updatedAgenda.notified24h
-    if (updatedAgenda.notifiedHours !== undefined) updateData.notified_hours = updatedAgenda.notifiedHours
-
-    const { error } = await supabase.from("agendas").update(updateData).eq("id", id)
-
-    if (error) throw error
-
-    await mutate()
+  const updateAgenda = (id: string, updatedAgenda: Partial<Agenda>) => {
+    setAgendas((prev) => prev.map((agenda) => (agenda.id === id ? { ...agenda, ...updatedAgenda } : agenda)))
   }
 
-  const deleteAgenda = async (id: string) => {
-    const supabase = createClient()
-
-    const { error } = await supabase.from("agendas").delete().eq("id", id)
-
-    if (error) throw error
-
-    await mutate()
+  const deleteAgenda = (id: string) => {
+    setAgendas((prev) => prev.filter((agenda) => agenda.id !== id))
   }
 
   const getUpcomingAgendas = () => {
@@ -139,25 +92,29 @@ export function AgendasProvider({ children }: { children: ReactNode }) {
     const userId = user.id
 
     agendas.forEach((agenda) => {
+      // Check if user is a participant
       if (!agenda.participants.includes(userId)) return
 
       const agendaDateTime = new Date(`${agenda.date}T${agenda.time}`)
       const timeDiff = agendaDateTime.getTime() - now.getTime()
       const hoursDiff = timeDiff / (1000 * 60 * 60)
 
+      // Notify 24 hours before
       if (!agenda.notified24h && hoursDiff <= 24 && hoursDiff > 23) {
         showNotification(agenda, "24 horas")
-        updateAgenda(agenda.id, { notified24h: true })
+        setAgendas((prev) => prev.map((a) => (a.id === agenda.id ? { ...a, notified24h: true } : a)))
       }
 
+      // Notify 1 hour before
       if (!agenda.notifiedHours && hoursDiff <= 1 && hoursDiff > 0) {
         showNotification(agenda, "1 hora")
-        updateAgenda(agenda.id, { notifiedHours: true })
+        setAgendas((prev) => prev.map((a) => (a.id === agenda.id ? { ...a, notifiedHours: true } : a)))
       }
     })
   }, [agendas, user])
 
   const showNotification = (agenda: Agenda, timeframe: string) => {
+    // Request notification permission if not granted
     if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "granted") {
         new Notification(`Lembrete de Reunião - ${timeframe}`, {
@@ -176,6 +133,7 @@ export function AgendasProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // Also show in-app notification
     if (typeof window !== "undefined") {
       const event = new CustomEvent("agenda-notification", {
         detail: { agenda, timeframe },
@@ -184,14 +142,7 @@ export function AgendasProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      checkNotifications()
-    }, 60000)
-
-    return () => clearInterval(interval)
-  }, [checkNotifications])
-
+  // Check for upcoming agendas and send notifications
   useEffect(() => {
     const checkAgendas = () => {
       const now = new Date()
@@ -201,40 +152,53 @@ export function AgendasProvider({ children }: { children: ReactNode }) {
       agendas.forEach((agenda) => {
         const agendaTime = new Date(`${agenda.date}T${agenda.time}`)
 
-        if (agendaTime > now && agendaTime <= in24Hours && !agenda.notified24h) {
-          addNotification({
-            type: "info",
-            title: "Reunião em 24 horas",
-            message: `${agenda.title} está agendada para amanhã às ${agenda.time}`,
-          })
+        // Check if agenda is in 24 hours
+        if (agendaTime > now && agendaTime <= in24Hours) {
+          const key = `notified-24h-${agenda.id}`
+          if (!localStorage.getItem(key)) {
+            addNotification({
+              type: "info",
+              title: "Reunião em 24 horas",
+              message: `${agenda.title} está agendada para amanhã às ${agenda.time}`,
+            })
+            localStorage.setItem(key, "true")
 
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(
-              new CustomEvent("agenda-notification", {
-                detail: { agenda, timeframe: "em 24 horas" },
-              }),
-            )
+            // Dispatch custom event for in-app notification
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("agenda-notification", {
+                  detail: { agenda, timeframe: "em 24 horas" },
+                }),
+              )
+            }
           }
         }
 
-        if (agendaTime > now && agendaTime <= in1Hour && !agenda.notifiedHours) {
-          addNotification({
-            type: "warning",
-            title: "Reunião em 1 hora",
-            message: `${agenda.title} começa em 1 hora (${agenda.time})`,
-          })
+        // Check if agenda is in 1 hour
+        if (agendaTime > now && agendaTime <= in1Hour) {
+          const key = `notified-1h-${agenda.id}`
+          if (!localStorage.getItem(key)) {
+            addNotification({
+              type: "warning",
+              title: "Reunião em 1 hora",
+              message: `${agenda.title} começa em 1 hora (${agenda.time})`,
+            })
+            localStorage.setItem(key, "true")
 
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(
-              new CustomEvent("agenda-notification", {
-                detail: { agenda, timeframe: "em 1 hora" },
-              }),
-            )
+            // Dispatch custom event for in-app notification
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("agenda-notification", {
+                  detail: { agenda, timeframe: "em 1 hora" },
+                }),
+              )
+            }
           }
         }
       })
     }
 
+    // Check immediately and then every minute
     checkAgendas()
     const interval = setInterval(checkAgendas, 60000)
 
@@ -250,7 +214,6 @@ export function AgendasProvider({ children }: { children: ReactNode }) {
         deleteAgenda,
         getUpcomingAgendas,
         checkNotifications,
-        isLoading,
       }}
     >
       {children}

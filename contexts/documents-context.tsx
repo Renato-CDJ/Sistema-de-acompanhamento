@@ -1,123 +1,67 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
-import useSWR from "swr"
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react"
 import type { Document, Folder } from "@/lib/types"
 import { useAuth } from "./auth-context"
 import { useNotifications } from "@/contexts/notifications-context"
-import { createClient } from "@/lib/supabase/client"
 
 interface DocumentsContextType {
   documents: Document[]
   folders: Folder[]
   currentFolder: string | null
   setCurrentFolder: (folderId: string | null) => void
-  addDocument: (document: Omit<Document, "id" | "uploadedAt">) => Promise<string>
-  deleteDocument: (id: string) => Promise<void>
-  uploadDocument: (document: Omit<Document, "id" | "uploadedAt">) => Promise<string>
-  createFolder: (folder: { name: string; parentId: string | null; createdBy: string }) => Promise<string>
-  deleteFolder: (id: string) => Promise<void>
+  addDocument: (document: Omit<Document, "id" | "uploadedAt">) => void
+  deleteDocument: (id: string) => void
+  uploadDocument: (document: Omit<Document, "id" | "uploadedAt">) => string
+  createFolder: (folder: { name: string; parentId: string | null; createdBy: string }) => string
+  deleteFolder: (id: string) => void
   getDocumentsInFolder: (folderId: string | null) => Document[]
   getFoldersInFolder: (folderId: string | null) => Folder[]
   getFolderPath: (folderId: string | null) => Folder[]
   searchDocuments: (query: string) => Document[]
-  isLoading: boolean
 }
 
 const DocumentsContext = createContext<DocumentsContextType | undefined>(undefined)
 
-const documentsFetcher = async (key: string) => {
-  const supabase = createClient()
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (!session) throw new Error("Not authenticated")
-
-  const { data, error } = await supabase.from("documents").select("*").order("uploaded_at", { ascending: false })
-
-  if (error) throw error
-
-  return (data || []).map((item: any) => ({
-    id: item.id,
-    name: item.name,
-    type: item.type,
-    size: item.size,
-    url: item.url,
-    path: item.path,
-    uploadedBy: item.uploaded_by,
-    uploadedAt: item.uploaded_at,
-  }))
-}
-
-const foldersFetcher = async (key: string) => {
-  const supabase = createClient()
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (!session) throw new Error("Not authenticated")
-
-  const { data, error } = await supabase.from("folders").select("*").order("name", { ascending: true })
-
-  if (error) throw error
-
-  return (data || []).map((item: any) => ({
-    id: item.id,
-    name: item.name,
-    parentId: item.parent_id,
-    createdBy: item.created_by,
-    createdAt: item.created_at,
-  }))
-}
-
 export function DocumentsProvider({ children }: { children: ReactNode }) {
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [folders, setFolders] = useState<Folder[]>([])
   const [currentFolder, setCurrentFolder] = useState<string | null>(null)
-  const { user, isLoading: authLoading } = useAuth()
+  const { user } = useAuth()
   const { addNotification } = useNotifications()
 
-  const shouldFetch = user && !authLoading
+  // Load data from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedDocs = localStorage.getItem("documents")
+      const storedFolders = localStorage.getItem("folders")
 
-  const {
-    data: documents = [],
-    mutate: mutateDocuments,
-    isLoading: docsLoading,
-  } = useSWR(shouldFetch ? "documents" : null, documentsFetcher, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: true,
-  })
+      if (storedDocs) setDocuments(JSON.parse(storedDocs))
+      if (storedFolders) setFolders(JSON.parse(storedFolders))
+    }
+  }, [])
 
-  const {
-    data: folders = [],
-    mutate: mutateFolders,
-    isLoading: foldersLoading,
-  } = useSWR(shouldFetch ? "folders" : null, foldersFetcher, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: true,
-  })
+  // Save data to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("documents", JSON.stringify(documents))
+    }
+  }, [documents])
 
-  const isLoading = docsLoading || foldersLoading
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("folders", JSON.stringify(folders))
+    }
+  }, [folders])
 
   const addDocument = useCallback(
-    async (newDocument: Omit<Document, "id" | "uploadedAt">) => {
-      const supabase = createClient()
-
-      const { data, error } = await supabase
-        .from("documents")
-        .insert({
-          name: newDocument.name,
-          type: newDocument.type,
-          size: newDocument.size,
-          url: newDocument.url,
-          path: newDocument.path,
-          uploaded_by: newDocument.uploadedBy,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      await mutateDocuments()
+    (newDocument: Omit<Document, "id" | "uploadedAt">) => {
+      const document: Document = {
+        ...newDocument,
+        id: Date.now().toString() + Math.random(),
+        uploadedAt: new Date().toISOString(),
+      }
+      setDocuments((prev) => [...prev, document])
 
       addNotification({
         type: "success",
@@ -125,45 +69,45 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         message: `${newDocument.name} foi adicionado com sucesso`,
       })
 
-      return data.id
+      return document.id
     },
-    [addNotification, mutateDocuments],
+    [addNotification],
   )
 
   const uploadDocument = useCallback(
-    async (newDocument: Omit<Document, "id" | "uploadedAt">) => {
-      return await addDocument(newDocument)
+    (newDocument: Omit<Document, "id" | "uploadedAt">) => {
+      const document: Document = {
+        ...newDocument,
+        id: Date.now().toString() + Math.random(),
+        uploadedAt: new Date().toISOString(),
+      }
+      setDocuments((prev) => [...prev, document])
+
+      addNotification({
+        type: "success",
+        title: "Documento enviado",
+        message: `${newDocument.name} foi adicionado com sucesso`,
+      })
+
+      return document.id
     },
-    [addDocument],
+    [addNotification],
   )
 
-  const deleteDocument = async (id: string) => {
-    const supabase = createClient()
-
-    const { error } = await supabase.from("documents").delete().eq("id", id)
-
-    if (error) throw error
-
-    await mutateDocuments()
+  const deleteDocument = (id: string) => {
+    setDocuments((prev) => prev.filter((doc) => doc.id !== id))
   }
 
   const createFolder = useCallback(
-    async (folderData: { name: string; parentId: string | null; createdBy: string }) => {
-      const supabase = createClient()
-
-      const { data, error } = await supabase
-        .from("folders")
-        .insert({
-          name: folderData.name,
-          parent_id: folderData.parentId,
-          created_by: folderData.createdBy,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      await mutateFolders()
+    (folderData: { name: string; parentId: string | null; createdBy: string }) => {
+      const folder: Folder = {
+        id: Date.now().toString() + Math.random(),
+        name: folderData.name,
+        parentId: folderData.parentId,
+        createdBy: folderData.createdBy,
+        createdAt: new Date().toISOString(),
+      }
+      setFolders((prev) => [...prev, folder])
 
       addNotification({
         type: "success",
@@ -171,34 +115,26 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         message: `A pasta "${folderData.name}" foi criada com sucesso`,
       })
 
-      return data.id
+      return folder.id
     },
-    [addNotification, mutateFolders],
+    [addNotification],
   )
 
-  const deleteFolder = async (id: string) => {
-    const supabase = createClient()
-
-    const deleteFolderRecursive = async (folderId: string) => {
+  const deleteFolder = (id: string) => {
+    // Delete folder and all its contents recursively
+    const deleteFolderRecursive = (folderId: string) => {
       // Delete documents in folder
-      await supabase.from("documents").delete().eq("path", folderId)
+      setDocuments((prev) => prev.filter((doc) => doc.path !== folderId))
 
       // Find and delete subfolders
-      const { data: subfolders } = await supabase.from("folders").select("id").eq("parent_id", folderId)
-
-      if (subfolders) {
-        for (const subfolder of subfolders) {
-          await deleteFolderRecursive(subfolder.id)
-        }
-      }
+      const subfolders = folders.filter((f) => f.parentId === folderId)
+      subfolders.forEach((subfolder) => deleteFolderRecursive(subfolder.id))
 
       // Delete the folder itself
-      await supabase.from("folders").delete().eq("id", folderId)
+      setFolders((prev) => prev.filter((f) => f.id !== folderId))
     }
 
-    await deleteFolderRecursive(id)
-    await mutateDocuments()
-    await mutateFolders()
+    deleteFolderRecursive(id)
   }
 
   const getDocumentsInFolder = (folderId: string | null) => {
@@ -252,7 +188,6 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         getFoldersInFolder,
         getFolderPath,
         searchDocuments,
-        isLoading,
       }}
     >
       {children}

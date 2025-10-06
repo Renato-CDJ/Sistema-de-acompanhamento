@@ -5,8 +5,7 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { useChat } from "@/contexts/chat-context"
 import { useAuth } from "@/contexts/auth-context"
-import { useUsers } from "@/contexts/users-context"
-import { hasPermission } from "@/lib/auth"
+import { hasPermission, mockUsers } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -207,7 +206,6 @@ export function ChatTab() {
     unpinMessage,
   } = useChat()
   const { user } = useAuth()
-  const { users: allUsers } = useUsers()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false)
   const [messageInput, setMessageInput] = useState("")
@@ -242,7 +240,7 @@ export function ChatTab() {
   const getMentionableUsers = () => {
     if (!currentChat) return []
     const searchLower = mentionSearch.toLowerCase()
-    return allUsers
+    return mockUsers
       .filter((u) => {
         if (u.id === user?.id) return false
         if (currentChat.type === "global") return true
@@ -330,7 +328,7 @@ export function ChatTab() {
     }
   }
 
-  const insertMention = (mentionedUser: (typeof allUsers)[0]) => {
+  const insertMention = (mentionedUser: (typeof mockUsers)[0]) => {
     const cursorPos = inputRef.current?.selectionStart || 0
     const textBeforeMention = messageInput.slice(0, mentionPosition)
     const textAfterCursor = messageInput.slice(cursorPos)
@@ -420,7 +418,7 @@ export function ChatTab() {
 
     const newChatId = createChat({
       type: chatType,
-      name: chatType === "group" ? chatName : `Chat com ${allUsers.find((u) => u.id === selectedUsers[0])?.name}`,
+      name: chatType === "group" ? chatName : `Chat com ${mockUsers.find((u) => u.id === selectedUsers[0])?.name}`,
       participants: [...selectedUsers, user.id],
       createdBy: user.id,
     })
@@ -443,7 +441,7 @@ export function ChatTab() {
     const mentions: string[] = []
     let match
     while ((match = mentionRegex.exec(messageInput)) !== null) {
-      const mentionedUser = allUsers.find((u) => u.name === match[1])
+      const mentionedUser = mockUsers.find((u) => u.name === match[1])
       if (mentionedUser) {
         mentions.push(mentionedUser.id)
       }
@@ -520,7 +518,7 @@ export function ChatTab() {
     let match
 
     while ((match = mentionRegex.exec(content)) !== null) {
-      const mentionedUser = allUsers.find((u) => u.name === match[1])
+      const mentionedUser = mockUsers.find((u) => u.name === match[1])
       if (mentionedUser && mentions.includes(mentionedUser.id)) {
         // Add text before mention
         if (match.index > lastIndex) {
@@ -545,17 +543,17 @@ export function ChatTab() {
   }
 
   const getOtherUsers = () => {
-    return allUsers.filter((u) => u.id !== user?.id)
+    return mockUsers.filter((u) => u.id !== user?.id)
   }
 
   const getChatParticipants = () => {
     if (!currentChat) return []
-    return allUsers.filter((u) => currentChat.participants.includes(u.id))
+    return mockUsers.filter((u) => currentChat.participants.includes(u.id))
   }
 
   const getNonParticipants = () => {
     if (!currentChat) return []
-    return allUsers.filter((u) => !currentChat.participants.includes(u.id) && u.id !== user?.id)
+    return mockUsers.filter((u) => !currentChat.participants.includes(u.id) && u.id !== user?.id)
   }
 
   return (
@@ -838,6 +836,7 @@ export function ChatTab() {
                         <div className="space-y-3 pb-4 border-b">
                           {pinnedMessages.map((msg) => {
                             const isOwn = msg.senderId === user?.id
+                            const sender = mockUsers.find((u) => u.id === msg.senderId)
 
                             return (
                               <div
@@ -888,6 +887,7 @@ export function ChatTab() {
                         const isOwn = msg.senderId === user?.id
                         const prevMsg = index > 0 ? regularMessages[index - 1] : null
                         const showAvatar = !prevMsg || prevMsg.senderId !== msg.senderId
+                        const sender = mockUsers.find((u) => u.id === msg.senderId)
                         const isEditing = editingMessageId === msg.id
 
                         return (
