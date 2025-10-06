@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/client"
-import { createClient as createServerClient } from "@/lib/supabase/server"
 
 export type UserRole = "superadmin" | "admin" | "user"
 
@@ -47,31 +46,6 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
     }
   } catch (error) {
     console.error("[v0] Error in getUserProfile:", error)
-    return null
-  }
-}
-
-export const getServerUserProfile = async (userId: string): Promise<User | null> => {
-  try {
-    const supabase = await createServerClient()
-    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
-
-    if (error || !data) {
-      console.error("[v0] Error fetching user profile:", error)
-      return null
-    }
-
-    return {
-      id: data.id,
-      email: data.email,
-      name: data.name,
-      role: data.role as UserRole,
-      cargo: data.cargo,
-      blocked: data.blocked,
-      permissions: data.permissions,
-    }
-  } catch (error) {
-    console.error("[v0] Error in getServerUserProfile:", error)
     return null
   }
 }
