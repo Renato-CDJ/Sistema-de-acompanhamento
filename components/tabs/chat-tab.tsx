@@ -8,7 +8,14 @@ import { useAuth } from "@/contexts/auth-context"
 import { hasPermission, mockUsers } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -555,11 +562,11 @@ export function ChatTab() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Excluir Mensagem</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir esta mensagem? Esta ação não pode ser desfeita.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Tem certeza que deseja excluir esta mensagem? Esta ação não pode ser desfeita.
-            </p>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={cancelDeleteMessage}>
                 Cancelar

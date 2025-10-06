@@ -35,6 +35,7 @@ import {
   BookOpen,
   History,
   UserCog,
+  HelpCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -107,6 +108,7 @@ const navigationStructure = [
     ],
   },
   { id: "chat", label: "Chat", icon: MessageSquare, type: "tab" as const },
+  { id: "guia", label: "Guia", icon: HelpCircle, type: "tab" as const },
   { id: "admin-panel", label: "Painel Admin", icon: ShieldCheck, type: "tab" as const },
 ]
 
@@ -496,7 +498,8 @@ export function DashboardLayout({
                 activeTab !== "chat" &&
                 activeTab !== "documentos" &&
                 activeTab !== "activity-log" &&
-                activeTab !== "area-qualidade" && (
+                activeTab !== "area-qualidade" &&
+                activeTab !== "guia" && (
                   <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-2">
                     <Filter className="h-4 w-4" />
                     {showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}

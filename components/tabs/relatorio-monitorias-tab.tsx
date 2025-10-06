@@ -185,7 +185,8 @@ export function RelatorioMonitoriasTab() {
       conforme: totalConforme,
       inconforme: totalInconforme,
       total,
-      media: total > 0 ? ((totalConforme / total) * 100).toFixed(1) : "0.0",
+      mediaConforme: total > 0 ? ((totalConforme / total) * 100).toFixed(1) : "0.0",
+      mediaInconforme: total > 0 ? ((totalInconforme / total) * 100).toFixed(1) : "0.0",
     }
   }, [filteredTableData])
 
@@ -324,7 +325,7 @@ export function RelatorioMonitoriasTab() {
                     <p className="text-4xl font-bold text-green-700 dark:text-green-200 mb-1">
                       {consolidatedTotals.conforme}
                     </p>
-                    <p className="text-sm text-green-600 dark:text-green-400">Monitorias aprovadas</p>
+                    <p className="text-sm text-green-600 dark:text-green-400">Monitorias Sem apontamentos</p>
                   </div>
                 </div>
 
@@ -344,7 +345,7 @@ export function RelatorioMonitoriasTab() {
                     <p className="text-4xl font-bold text-red-700 dark:text-red-200 mb-1">
                       {consolidatedTotals.inconforme}
                     </p>
-                    <p className="text-sm text-red-600 dark:text-red-400">Monitorias reprovadas</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">Monitorias Com Apontamentos</p>
                   </div>
                 </div>
               </div>
@@ -371,7 +372,7 @@ export function RelatorioMonitoriasTab() {
               </div>
 
               <div className="relative overflow-hidden p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 rounded-xl border-2 border-blue-200 dark:border-blue-800 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200 dark:bg-blue-800 rounded-full -mr-16 -mt-16 opacity-20" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200 dark:bg-blue-800 rounded-full -mr-16 -mt-16" />
                 <div className="relative">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="p-2 bg-blue-500 rounded-lg">
@@ -391,7 +392,7 @@ export function RelatorioMonitoriasTab() {
                   <p className="text-4xl font-bold text-blue-700 dark:text-blue-200 mb-1">
                     {consolidatedTotals.mediaConforme}%
                   </p>
-                  <p className="text-sm text-muted-foreground">Taxa de aprovação do período</p>
+                  <p className="text-sm text-muted-foreground">Taxa de conformes do período</p>
                 </div>
               </div>
 
@@ -417,7 +418,7 @@ export function RelatorioMonitoriasTab() {
                     <p className="text-4xl font-bold text-orange-700 dark:text-orange-200 mb-1">
                       {consolidatedTotals.mediaInconforme}%
                     </p>
-                    <p className="text-sm text-muted-foreground">Taxa de reprovação do período</p>
+                    <p className="text-sm text-muted-foreground">Taxa de inconformes do período</p>
                   </div>
                 </div>
               )}
@@ -586,7 +587,7 @@ export function RelatorioMonitoriasTab() {
                       <td className="text-right p-3 text-green-600">{filteredTotals.conforme}</td>
                       <td className="text-right p-3 text-red-600">{filteredTotals.inconforme}</td>
                       <td className="text-right p-3">{filteredTotals.total}</td>
-                      <td className="text-right p-3 text-blue-600">{filteredTotals.media}%</td>
+                      <td className="text-right p-3 text-blue-600">{filteredTotals.mediaConforme}%</td>
                       {isAdmin && <td className="p-3"></td>}
                     </tr>
                   </>
