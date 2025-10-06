@@ -49,13 +49,40 @@ export function UsersProvider({ children }: { children: React.ReactNode }) {
   const updateUser = (id: string, updates: Partial<User>) => {
     const updatedUsers = users.map((user) => (user.id === id ? { ...user, ...updates } : user))
     setUsers(updatedUsers)
-    saveUsers(updatedUsers)
+
+    // Save to localStorage with password preservation
+    if (typeof window !== "undefined") {
+      try {
+        const storedUsers = localStorage.getItem("systemUsers")
+        if (storedUsers) {
+          const allUsers = JSON.parse(storedUsers)
+          const updatedAllUsers = allUsers.map((user: any) => (user.id === id ? { ...user, ...updates } : user))
+          localStorage.setItem("systemUsers", JSON.stringify(updatedAllUsers))
+        } else {
+          saveUsers(updatedUsers)
+        }
+      } catch (error) {
+        console.error("Error updating user:", error)
+      }
+    }
   }
 
   const deleteUser = (id: string) => {
     const updatedUsers = users.filter((user) => user.id !== id)
     setUsers(updatedUsers)
-    saveUsers(updatedUsers)
+
+    if (typeof window !== "undefined") {
+      try {
+        const storedUsers = localStorage.getItem("systemUsers")
+        if (storedUsers) {
+          const allUsers = JSON.parse(storedUsers)
+          const updatedAllUsers = allUsers.filter((user: any) => user.id !== id)
+          localStorage.setItem("systemUsers", JSON.stringify(updatedAllUsers))
+        }
+      } catch (error) {
+        console.error("Error deleting user:", error)
+      }
+    }
   }
 
   const updateUserPermissions = (userId: string, permissions: User["permissions"]) => {
