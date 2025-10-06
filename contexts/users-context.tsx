@@ -43,9 +43,31 @@ export function UsersProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateUser = (id: string, updates: Partial<User>) => {
-    const updatedUsers = users.map((user) => (user.id === id ? { ...user, ...updates } : user))
-    setUsers(updatedUsers)
-    saveUsers(updatedUsers)
+    if (typeof window !== "undefined") {
+      try {
+        // Load current users with passwords from localStorage
+        const storedUsers = localStorage.getItem("systemUsers")
+        const existingUsers = storedUsers ? JSON.parse(storedUsers) : []
+
+        // Update the specific user while preserving password
+        const updatedUsersWithPasswords = existingUsers.map((user: User & { password?: string }) => {
+          if (user.id === id) {
+            // Merge updates but keep the password
+            return { ...user, ...updates, password: user.password }
+          }
+          return user
+        })
+
+        // Save back to localStorage with passwords preserved
+        localStorage.setItem("systemUsers", JSON.stringify(updatedUsersWithPasswords))
+
+        // Update state (without passwords for security)
+        const updatedUsers = users.map((user) => (user.id === id ? { ...user, ...updates } : user))
+        setUsers(updatedUsers)
+      } catch (error) {
+        console.error("Error updating user:", error)
+      }
+    }
   }
 
   const deleteUser = (id: string) => {
