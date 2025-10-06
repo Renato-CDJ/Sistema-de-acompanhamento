@@ -16,6 +16,7 @@ export interface User {
       canEdit: boolean
     }>
   }
+  password?: string
 }
 
 export interface AuthState {
@@ -37,6 +38,7 @@ export const mockUsers: User[] = [
       canManageUsers: true,
       tabPermissions: [],
     },
+    password: "qualidade@$.",
   },
   {
     id: "2",
@@ -50,6 +52,7 @@ export const mockUsers: User[] = [
       canManageUsers: false,
       tabPermissions: [],
     },
+    password: "123456",
   },
 ]
 
@@ -71,7 +74,31 @@ export const loadUsers = (): User[] => {
 export const saveUsers = (users: User[]) => {
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem("systemUsers", JSON.stringify(users))
+      const storedUsers = localStorage.getItem("systemUsers")
+      const existingUsers = storedUsers ? JSON.parse(storedUsers) : []
+
+      const passwordMap = new Map()
+      existingUsers.forEach((user: any) => {
+        if (user.password) {
+          passwordMap.set(user.id, user.password)
+        }
+      })
+
+      const usersWithPasswords = users.map((user) => {
+        const existingPassword = passwordMap.get(user.id)
+        if (existingPassword) {
+          return { ...user, password: existingPassword }
+        }
+        if (user.email === "admin@empresa.com") {
+          return { ...user, password: "qualidade@$." }
+        }
+        if (user.email === "usuario@empresa.com") {
+          return { ...user, password: "123456" }
+        }
+        return user
+      })
+
+      localStorage.setItem("systemUsers", JSON.stringify(usersWithPasswords))
     } catch (error) {
       console.error("Error saving users to localStorage:", error)
     }
@@ -80,30 +107,29 @@ export const saveUsers = (users: User[]) => {
 
 export const authenticateUser = async (email: string, password: string): Promise<User | null> => {
   try {
-    const users = loadUsers()
-    const user = users.find((u) => u.email === email)
-
-    // Check if user is blocked
-    if (user?.blocked) {
-      return null
+    if (email === "admin@empresa.com" && password === "qualidade@$.") {
+      const users = loadUsers()
+      const user = users.find((u) => u.email === email)
+      if (user && !user.blocked) {
+        return user
+      }
     }
 
-    if (user) {
-      if (user.email === "admin@empresa.com" && password === "qualidade@$.") {
+    if (email === "usuario@empresa.com" && password === "123456") {
+      const users = loadUsers()
+      const user = users.find((u) => u.email === email)
+      if (user && !user.blocked) {
         return user
       }
-      if (user.email === "usuario@empresa.com" && password === "123456") {
-        return user
-      }
+    }
 
-      const storedUsers = typeof window !== "undefined" ? localStorage.getItem("systemUsers") : null
-      if (storedUsers) {
-        const parsedUsers = JSON.parse(storedUsers)
-        const customUser = parsedUsers.find((u: any) => u.email === email && u.password === password)
-        if (customUser && !customUser.blocked) {
-          const { password: _, ...userWithoutPassword } = customUser
-          return userWithoutPassword
-        }
+    const storedUsers = typeof window !== "undefined" ? localStorage.getItem("systemUsers") : null
+    if (storedUsers) {
+      const parsedUsers = JSON.parse(storedUsers)
+      const customUser = parsedUsers.find((u: any) => u.email === email && u.password === password)
+      if (customUser && !customUser.blocked) {
+        const { password: _, ...userWithoutPassword } = customUser
+        return userWithoutPassword
       }
     }
   } catch (error) {
