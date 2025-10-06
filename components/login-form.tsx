@@ -103,6 +103,7 @@ export function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 transition-all focus:ring-2 focus:ring-primary/20"
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -118,6 +119,7 @@ export function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 transition-all focus:ring-2 focus:ring-primary/20"
+                  autoComplete="current-password"
                   required
                 />
               </div>

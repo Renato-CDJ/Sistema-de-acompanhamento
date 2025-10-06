@@ -37,34 +37,15 @@ export function UsersProvider({ children }: { children: React.ReactNode }) {
     const updatedUsers = [...users, newUser]
     setUsers(updatedUsers)
 
-    // Save with password for authentication
     if (typeof window !== "undefined") {
-      const storedUsers = localStorage.getItem("systemUsers")
-      const allUsers = storedUsers ? JSON.parse(storedUsers) : []
-      allUsers.push(newUser)
-      localStorage.setItem("systemUsers", JSON.stringify(allUsers))
+      saveUsers(updatedUsers)
     }
   }
 
   const updateUser = (id: string, updates: Partial<User>) => {
     const updatedUsers = users.map((user) => (user.id === id ? { ...user, ...updates } : user))
     setUsers(updatedUsers)
-
-    // Save to localStorage with password preservation
-    if (typeof window !== "undefined") {
-      try {
-        const storedUsers = localStorage.getItem("systemUsers")
-        if (storedUsers) {
-          const allUsers = JSON.parse(storedUsers)
-          const updatedAllUsers = allUsers.map((user: any) => (user.id === id ? { ...user, ...updates } : user))
-          localStorage.setItem("systemUsers", JSON.stringify(updatedAllUsers))
-        } else {
-          saveUsers(updatedUsers)
-        }
-      } catch (error) {
-        console.error("Error updating user:", error)
-      }
-    }
+    saveUsers(updatedUsers)
   }
 
   const deleteUser = (id: string) => {
