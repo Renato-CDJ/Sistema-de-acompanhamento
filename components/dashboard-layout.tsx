@@ -73,6 +73,7 @@ const navigationStructure = [
       { id: "operadores", label: "Operadores", icon: Users },
       { id: "carteiras", label: "Carteiras", icon: Wallet },
       { id: "desligamentos", label: "Desligamentos", icon: UserX },
+      { id: "abs", label: "ABS", icon: Calendar },
       { id: "activity-log", label: "Histórico de Atividades", icon: History },
       { id: "documentos", label: "Documentos", icon: FolderOpen },
     ],
@@ -321,6 +322,7 @@ export function DashboardLayout({
         case "documentos":
         case "activity-log":
         case "area-qualidade":
+        case "abs":
           return secaoFilter
         default:
           return secaoFilter

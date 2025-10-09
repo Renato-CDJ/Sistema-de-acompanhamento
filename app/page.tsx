@@ -20,7 +20,8 @@ import { AdminPanelTab } from "@/components/tabs/admin-panel-tab"
 import { ActivityLogTab } from "@/components/tabs/activity-log-tab"
 import { AreaQualidadeTab } from "@/components/tabs/area-qualidade-tab"
 import { ControleAgentesTab } from "@/components/tabs/controle-agentes-tab"
-import { GuiaTab } from "@/components/tabs/guia-tab" // Added GuiaTab import
+import { GuiaTab } from "@/components/tabs/guia-tab"
+import { AbsTab } from "@/components/tabs/abs-tab"
 
 interface Filters {
   dateRange?: { start: string; end: string }
@@ -84,8 +85,10 @@ export default function HomePage() {
         return <AreaQualidadeTab />
       case "controle-agentes":
         return <ControleAgentesTab />
-      case "guia": // Added guide tab case
+      case "guia":
         return <GuiaTab />
+      case "abs":
+        return <AbsTab />
       case "admin-panel":
         return <AdminPanelTab />
       case "activity-log":
