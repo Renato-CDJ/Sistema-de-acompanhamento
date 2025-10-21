@@ -25,7 +25,6 @@ import {
   FilterX,
   FileText,
   Calendar,
-  MessageSquare,
   FolderOpen,
   ShieldCheck,
   ChevronDown,
@@ -33,7 +32,6 @@ import {
   Briefcase,
   ClipboardCheck,
   BookOpen,
-  History,
   UserCog,
   HelpCircle,
 } from "lucide-react"
@@ -74,7 +72,6 @@ const navigationStructure = [
       { id: "carteiras", label: "Carteiras", icon: Wallet },
       { id: "desligamentos", label: "Desligamentos", icon: UserX },
       { id: "abs", label: "ABS", icon: Calendar },
-      { id: "activity-log", label: "Histórico de Atividades", icon: History },
       { id: "documentos", label: "Documentos", icon: FolderOpen },
     ],
   },
@@ -108,7 +105,6 @@ const navigationStructure = [
       { id: "controle-agentes", label: "Controle de Agentes", icon: UserCog },
     ],
   },
-  { id: "chat", label: "Chat", icon: MessageSquare, type: "tab" as const },
   { id: "guia", label: "Guia", icon: HelpCircle, type: "tab" as const },
   { id: "admin-panel", label: "Painel Admin", icon: ShieldCheck, type: "tab" as const },
 ]
@@ -318,11 +314,9 @@ export function DashboardLayout({
         case "relatorio-monitorias":
         case "apuracao-tia":
         case "agendas":
-        case "chat":
         case "documentos":
-        case "activity-log":
+        case "guia":
         case "area-qualidade":
-        case "abs":
           return secaoFilter
         default:
           return secaoFilter
@@ -497,10 +491,7 @@ export function DashboardLayout({
               <NotificationsPanel />
               {activeTab !== "admin-panel" &&
                 activeTab !== "agendas" &&
-                activeTab !== "chat" &&
                 activeTab !== "documentos" &&
-                activeTab !== "activity-log" &&
-                activeTab !== "area-qualidade" &&
                 activeTab !== "guia" && (
                   <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-2">
                     <Filter className="h-4 w-4" />

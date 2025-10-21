@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist } from "next/font/google"
 import { Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
@@ -29,6 +29,13 @@ export const metadata: Metadata = {
   title: "Sistema de Acompanhamento",
   description: "Sistema moderno de acompanhamento empresarial",
   generator: "v0.app",
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
 }
 
 export default function RootLayout({

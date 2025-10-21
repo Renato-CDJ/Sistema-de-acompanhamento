@@ -22,8 +22,6 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { UserPlus, Shield, ShieldOff, Trash2, Settings, Eye, Edit, Ban, CheckCircle, Search, Key } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { BackupManager } from "@/components/backup-manager"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const availableTabs = [
   { id: "overview", label: "Visão Geral" },
@@ -78,8 +76,9 @@ export function AdminPanelTab() {
     email: "",
     password: "",
     role: "user" as "admin" | "user",
+    cargo: "",
   })
-  const [formErrors, setFormErrors] = useState<{ name?: string; email?: string; password?: string }>({})
+  const [formErrors, setFormErrors] = useState<{ name?: string; email?: string; password?: string; cargo?: string }>({})
 
   if (!isSuperAdmin(user)) {
     return (
@@ -90,7 +89,7 @@ export function AdminPanelTab() {
   }
 
   const validateForm = (): boolean => {
-    const errors: { name?: string; email?: string; password?: string } = {}
+    const errors: { name?: string; email?: string; password?: string; cargo?: string } = {}
 
     if (!newUser.name.trim()) {
       errors.name = "Nome é obrigatório"
@@ -108,6 +107,10 @@ export function AdminPanelTab() {
       errors.password = "Senha é obrigatória"
     } else if (newUser.password.length < 6) {
       errors.password = "Senha deve ter no mínimo 6 caracteres"
+    }
+
+    if (!newUser.cargo.trim()) {
+      errors.cargo = "Cargo é obrigatório"
     }
 
     setFormErrors(errors)
@@ -134,7 +137,7 @@ export function AdminPanelTab() {
       permissions: defaultPermissions,
     })
 
-    setNewUser({ name: "", email: "", password: "", role: "user" })
+    setNewUser({ name: "", email: "", password: "", role: "user", cargo: "" })
     setFormErrors({})
     setIsAddUserOpen(false)
   }
@@ -277,6 +280,7 @@ export function AdminPanelTab() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Excluir Usuário</DialogTitle>
+            <DialogDescription>Confirme a exclusão permanente do usuário do sistema</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
@@ -299,6 +303,7 @@ export function AdminPanelTab() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{userToBlock?.blocked ? "Desbloquear" : "Bloquear"} Usuário</DialogTitle>
+            <DialogDescription>Confirme a alteração do status de acesso do usuário</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
@@ -374,287 +379,290 @@ export function AdminPanelTab() {
 
       <div>
         <h2 className="text-2xl font-bold">Painel de Administração</h2>
-        <p className="text-muted-foreground">Gerencie usuários, permissões e backups do sistema</p>
+        <p className="text-muted-foreground">Gerencie usuários e permissões do sistema</p>
       </div>
 
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="users">Usuários e Permissões</TabsTrigger>
-          <TabsTrigger value="backup">Backup e Restauração</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="users" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-                <UserPlus className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{filteredUsers.length}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{activeUsers}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Usuários Bloqueados</CardTitle>
-                <Ban className="h-4 w-4 text-destructive" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{blockedUsers}</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar usuários..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Adicionar Usuário
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Adicionar Novo Usuário</DialogTitle>
-                  <DialogDescription>Crie um novo usuário e defina suas permissões iniciais</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Nome</Label>
-                    <Input
-                      id="name"
-                      value={newUser.name}
-                      onChange={(e) => {
-                        setNewUser({ ...newUser, name: e.target.value })
-                        if (formErrors.name) setFormErrors({ ...formErrors, name: undefined })
-                      }}
-                      placeholder="Nome completo"
-                      className={formErrors.name ? "border-destructive" : ""}
-                    />
-                    {formErrors.name && <p className="text-sm text-destructive mt-1">{formErrors.name}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={newUser.email}
-                      onChange={(e) => {
-                        setNewUser({ ...newUser, email: e.target.value })
-                        if (formErrors.email) setFormErrors({ ...formErrors, email: undefined })
-                      }}
-                      placeholder="usuario@empresa.com"
-                      className={formErrors.email ? "border-destructive" : ""}
-                    />
-                    {formErrors.email && <p className="text-sm text-destructive mt-1">{formErrors.email}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="password">Senha</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={newUser.password}
-                      onChange={(e) => {
-                        setNewUser({ ...newUser, password: e.target.value })
-                        if (formErrors.password) setFormErrors({ ...formErrors, password: undefined })
-                      }}
-                      placeholder="Mínimo 6 caracteres"
-                      className={formErrors.password ? "border-destructive" : ""}
-                    />
-                    {formErrors.password && <p className="text-sm text-destructive mt-1">{formErrors.password}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="role">Tipo de Usuário</Label>
-                    <Select
-                      value={newUser.role}
-                      onValueChange={(value: "admin" | "user") => setNewUser({ ...newUser, role: value })}
-                    >
-                      <SelectTrigger id="role">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user">Usuário Comum</SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button onClick={handleAddUser} className="w-full">
-                    Criar Usuário
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
-            <CardHeader>
-              <CardTitle>Usuários do Sistema</CardTitle>
-              <CardDescription>Gerencie os usuários e suas permissões de acesso às telas</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
+              <UserPlus className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
-                        Nenhum usuário encontrado
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredUsers.map((u) => (
-                      <TableRow key={u.id}>
-                        <TableCell className="font-medium">{u.name}</TableCell>
-                        <TableCell>{u.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={u.role === "admin" ? "default" : "secondary"}>
-                            {u.role === "admin" ? "Administrador" : "Usuário"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={u.blocked ? "destructive" : "default"}>
-                            {u.blocked ? "Bloqueado" : "Ativo"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" onClick={() => setSelectedUser(u.id)}>
-                                  <Settings className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                                <DialogHeader>
-                                  <DialogTitle>Permissões de {u.name}</DialogTitle>
-                                  <DialogDescription>
-                                    Configure quais telas o usuário pode visualizar e editar
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Tela</TableHead>
-                                        <TableHead className="text-center">
-                                          <Eye className="h-4 w-4 inline mr-1" />
-                                          Visualizar
-                                        </TableHead>
-                                        <TableHead className="text-center">
-                                          <Edit className="h-4 w-4 inline mr-1" />
-                                          Editar
-                                        </TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {availableTabs.map((tab) => {
-                                        const permission = getTabPermission(u.id, tab.id)
-                                        return (
-                                          <TableRow key={tab.id}>
-                                            <TableCell>{tab.label}</TableCell>
-                                            <TableCell className="text-center">
-                                              <Switch
-                                                checked={permission.canView}
-                                                onCheckedChange={() => handleToggleTabPermission(u.id, tab.id, "view")}
-                                              />
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                              <Switch
-                                                checked={permission.canEdit}
-                                                onCheckedChange={() => handleToggleTabPermission(u.id, tab.id, "edit")}
-                                              />
-                                            </TableCell>
-                                          </TableRow>
-                                        )
-                                      })}
-                                    </TableBody>
-                                  </Table>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                            {u.role === "user" ? (
-                              <Button variant="outline" size="sm" onClick={() => promoteUser(u.id)} className="gap-1">
-                                <Shield className="h-4 w-4" />
-                                Promover
-                              </Button>
-                            ) : (
-                              <Button variant="outline" size="sm" onClick={() => demoteUser(u.id)} className="gap-1">
-                                <ShieldOff className="h-4 w-4" />
-                                Rebaixar
-                              </Button>
-                            )}
-                            <Button
-                              variant={u.blocked ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => handleBlockClick(u.id, u.name, u.blocked || false)}
-                              className="gap-1"
-                            >
-                              {u.blocked ? (
-                                <>
-                                  <CheckCircle className="h-4 w-4" />
-                                  Desbloquear
-                                </>
-                              ) : (
-                                <>
-                                  <Ban className="h-4 w-4" />
-                                  Bloquear
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePasswordChangeClick(u.id, u.name)}
-                              className="gap-1"
-                              title="Alterar senha"
-                            >
-                              <Key className="h-4 w-4" />
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(u.id, u.name)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+              <div className="text-2xl font-bold">{filteredUsers.length}</div>
             </CardContent>
           </Card>
-        </TabsContent>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{activeUsers}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Usuários Bloqueados</CardTitle>
+              <Ban className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{blockedUsers}</div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <TabsContent value="backup">
-          <BackupManager />
-        </TabsContent>
-      </Tabs>
+        <div className="flex items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar usuários..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <UserPlus className="h-4 w-4" />
+                Adicionar Usuário
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Adicionar Novo Usuário</DialogTitle>
+                <DialogDescription>Crie um novo usuário e defina suas permissões iniciais</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Nome</Label>
+                  <Input
+                    id="name"
+                    value={newUser.name}
+                    onChange={(e) => {
+                      setNewUser({ ...newUser, name: e.target.value })
+                      if (formErrors.name) setFormErrors({ ...formErrors, name: undefined })
+                    }}
+                    placeholder="Nome completo"
+                    className={formErrors.name ? "border-destructive" : ""}
+                  />
+                  {formErrors.name && <p className="text-sm text-destructive mt-1">{formErrors.name}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => {
+                      setNewUser({ ...newUser, email: e.target.value })
+                      if (formErrors.email) setFormErrors({ ...formErrors, email: undefined })
+                    }}
+                    placeholder="usuario@empresa.com"
+                    className={formErrors.email ? "border-destructive" : ""}
+                  />
+                  {formErrors.email && <p className="text-sm text-destructive mt-1">{formErrors.email}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="cargo">Cargo</Label>
+                  <Input
+                    id="cargo"
+                    value={newUser.cargo}
+                    onChange={(e) => {
+                      setNewUser({ ...newUser, cargo: e.target.value })
+                      if (formErrors.cargo) setFormErrors({ ...formErrors, cargo: undefined })
+                    }}
+                    placeholder="Ex: Analista, Coordenador, Gerente"
+                    className={formErrors.cargo ? "border-destructive" : ""}
+                  />
+                  {formErrors.cargo && <p className="text-sm text-destructive mt-1">{formErrors.cargo}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => {
+                      setNewUser({ ...newUser, password: e.target.value })
+                      if (formErrors.password) setFormErrors({ ...formErrors, password: undefined })
+                    }}
+                    placeholder="Mínimo 6 caracteres"
+                    className={formErrors.password ? "border-destructive" : ""}
+                  />
+                  {formErrors.password && <p className="text-sm text-destructive mt-1">{formErrors.password}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="role">Tipo de Usuário</Label>
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(value: "admin" | "user") => setNewUser({ ...newUser, role: value })}
+                  >
+                    <SelectTrigger id="role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">Usuário Comum</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleAddUser} className="w-full">
+                  Criar Usuário
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Usuários do Sistema</CardTitle>
+            <CardDescription>Gerencie os usuários e suas permissões de acesso às telas</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      Nenhum usuário encontrado
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell className="font-medium">{u.name}</TableCell>
+                      <TableCell>{u.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={u.role === "admin" ? "default" : "secondary"}>
+                          {u.role === "admin" ? "Administrador" : "Usuário"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={u.blocked ? "destructive" : "default"}>
+                          {u.blocked ? "Bloqueado" : "Ativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" onClick={() => setSelectedUser(u.id)}>
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Permissões de {u.name}</DialogTitle>
+                                <DialogDescription>
+                                  Configure quais telas o usuário pode visualizar e editar
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Tela</TableHead>
+                                      <TableHead className="text-center">
+                                        <Eye className="h-4 w-4 inline mr-1" />
+                                        Visualizar
+                                      </TableHead>
+                                      <TableHead className="text-center">
+                                        <Edit className="h-4 w-4 inline mr-1" />
+                                        Editar
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {availableTabs.map((tab) => {
+                                      const permission = getTabPermission(u.id, tab.id)
+                                      return (
+                                        <TableRow key={tab.id}>
+                                          <TableCell>{tab.label}</TableCell>
+                                          <TableCell className="text-center">
+                                            <Switch
+                                              checked={permission.canView}
+                                              onCheckedChange={() => handleToggleTabPermission(u.id, tab.id, "view")}
+                                            />
+                                          </TableCell>
+                                          <TableCell className="text-center">
+                                            <Switch
+                                              checked={permission.canEdit}
+                                              onCheckedChange={() => handleToggleTabPermission(u.id, tab.id, "edit")}
+                                            />
+                                          </TableCell>
+                                        </TableRow>
+                                      )
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          {u.role === "user" ? (
+                            <Button variant="outline" size="sm" onClick={() => promoteUser(u.id)} className="gap-1">
+                              <Shield className="h-4 w-4" />
+                              Promover
+                            </Button>
+                          ) : (
+                            <Button variant="outline" size="sm" onClick={() => demoteUser(u.id)} className="gap-1">
+                              <ShieldOff className="h-4 w-4" />
+                              Rebaixar
+                            </Button>
+                          )}
+                          <Button
+                            variant={u.blocked ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleBlockClick(u.id, u.name, u.blocked || false)}
+                            className="gap-1"
+                          >
+                            {u.blocked ? (
+                              <>
+                                <CheckCircle className="h-4 w-4" />
+                                Desbloquear
+                              </>
+                            ) : (
+                              <>
+                                <Ban className="h-4 w-4" />
+                                Bloquear
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePasswordChangeClick(u.id, u.name)}
+                            className="gap-1"
+                            title="Alterar senha"
+                          >
+                            <Key className="h-4 w-4" />
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(u.id, u.name)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

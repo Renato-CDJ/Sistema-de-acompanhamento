@@ -5,7 +5,7 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "lint": "next lint",
+    "lint": "eslint .",
     "start": "next start"
   },
   "dependencies": {
@@ -44,7 +44,6 @@
     "cmdk": "latest",
     "date-fns": "latest",
     "embla-carousel-react": "latest",
-    "geist": "^1.3.1",
     "input-otp": "latest",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",
@@ -60,7 +59,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
     "xlsx": "latest",
-    "zod": "3.25.67"
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",

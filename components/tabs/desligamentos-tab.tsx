@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
-import { Eye, EyeOff, UserX, AlertTriangle, Building2, Edit, Trash2, Filter, Plus, Settings } from "lucide-react"
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
+import { Eye, EyeOff, UserX, AlertTriangle, Edit, Trash2, Filter, Plus, Settings } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -283,6 +283,14 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
     }))
     .filter((item) => item.value > 0)
 
+  const pieDataCarteiras = carteiras
+    .map((carteira, index) => ({
+      name: carteira.name,
+      value: dataDesligamentos.filter((d) => d.carteira === carteira.name).length,
+      color: `hsl(${(index * 360) / carteiras.length}, 65%, 55%)`,
+    }))
+    .filter((item) => item.value > 0)
+
   const carteiraDesligamentos = carteiras.map((carteira) => ({
     carteira: carteira.name,
     quantidade: dataDesligamentos.filter((d) => d.carteira === carteira.name).length,
@@ -387,37 +395,6 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
               )}
             </CardContent>
           </Card>
-
-          {/* Desligamentos por Carteira */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Desligamentos por Carteira
-              </CardTitle>
-              <CardDescription>Distribuição de desligamentos por carteira</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {carteiraDesligamentos.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {carteiraDesligamentos.map((item, index) => (
-                    <Card key={index}>
-                      <CardContent className="p-4 text-center">
-                        <h4 className="font-semibold text-sm mb-2">{item.carteira}</h4>
-                        <div className="text-2xl font-bold text-red-600">{item.quantidade}</div>
-                        <p className="text-xs text-muted-foreground">desligamentos</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Nenhuma carteira cadastrada ainda.</p>
-                  <p className="text-sm">Acesse a aba "Carteiras" para gerenciar as carteiras.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </>
       )}
 
@@ -432,53 +409,67 @@ export function DesligamentosTab({ filters }: DesligamentosTabProps) {
       )}
 
       {/* Charts */}
-      {showCharts && dataDesligamentos.length > 0 && pieDataAvisoPrevia.length > 0 && (
+      {showCharts && dataDesligamentos.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Aviso Prévio</CardTitle>
-              <CardDescription>Distribuição por aviso prévio</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={pieDataAvisoPrevia}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {pieDataAvisoPrevia.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          {pieDataAvisoPrevia.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Aviso Prévio</CardTitle>
+                <CardDescription>Distribuição por aviso prévio</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={pieDataAvisoPrevia}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieDataAvisoPrevia.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Desligamentos por Carteira</CardTitle>
-              <CardDescription>Quantidade por carteira</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={carteiraDesligamentos.filter((c) => c.quantidade > 0)}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="carteira" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="quantidade" fill="#ef4444" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          {pieDataCarteiras.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Desligamentos por Carteira</CardTitle>
+                <CardDescription>Distribuição por carteira</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={pieDataCarteiras}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieDataCarteiras.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
